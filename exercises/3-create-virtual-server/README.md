@@ -23,8 +23,6 @@ Next, add a task section to the playbook:
     a10_slb_virtual_server:
 ```
 
-Note the action name `a10_slb_virtual_server`. All actions are 
-
 ### Step 3
 
 ### Conclusion
