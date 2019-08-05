@@ -1,5 +1,5 @@
 ## Exercise 2: Exploration
-A10's Ansible modules are generated off of ACOS schema files. These schema files are also used to create the API
+A10's Ansible modules are generated off of ACOS schema files. These schema files are also used to create the API.
 
 ### Step 1: Explore the AXAPI
 Navigate to https://documentation.a10networks.com/index.html. You'll need to sign in with your A10 networks support account.
@@ -14,6 +14,9 @@ Under the `Configuration APIs` section, navigate to the `slb` and then `virtual-
 On the same page, under the `virtual-server specification` section, you'll find a table with a `schema` section. Download and open the `txt` schema file. This file has the same information as the `virtual-server attributes` section, but in a more consumable format.
 
 ### Step 3: Explore the Modules
+Navigate to https://github.com/a10networks/a10-ansible/blob/master/a10_ansible/library/a10_slb_virtual_server.py.
 
+The documenation section starting at https://github.com/a10networks/a10-ansible/blob/master/a10_ansible/library/a10_slb_virtual_server.py#L11, and the argspec section starting at https://github.com/a10networks/a10-ansible/blob/master/a10_ansible/library/a10_slb_virtual_server.py#L653 also give insights into expected arguments, their values, and whether or not they are required.
 
 ### Conclusion
+In this section we've covered where to look for information regarding playbook arguments. In the next sections, we'll begin writing playbooks.
