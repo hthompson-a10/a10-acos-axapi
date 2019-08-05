@@ -29,3 +29,10 @@ Note the action name `a10_slb_virtual_server`. Actions are named based paritally
 Finally, it's time to add arguments to the playbook. First, make sure to refer to the AXAPI (insert link here).
 
 ### Conclusion
+
+### Problems
+3.1: 
+
+3.2: 
+
+3.3: 
