@@ -23,6 +23,9 @@ Next, add a task section to the playbook:
     a10_slb_virtual_server:
 ```
 
+Note the action name `a10_slb_virtual_server`. Actions are named based paritally upon their URI and preceded by `a10`. In this case, the URI is `/axapi/v3/slb/virtual_server`. Another examle is `a10_health_monitor` which has the URI `/axapi/v3/health/monitor`.
+
 ### Step 3
+Finally, it's time to add arguments to the playbook. First, make sure to refer to the AXAPI (insert link here).
 
 ### Conclusion
