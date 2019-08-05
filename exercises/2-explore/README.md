@@ -11,8 +11,9 @@ Under the `Reference Documentation for User Interfaces Used to Configure the Dev
 Under the `Configuration APIs` section, navigate to the `slb` and then `virtual-server` sections. The `virtual-server attributes` section of this page contains information regarding acceptable arguments to the AXAPI. As the A10 Ansible modules pass the information provided in each playbook onto the AXAPI, arguments found within the AXAPI documentation are also valid playbook arguments.
 
 ### Step 2: Explore the Schema
-On the same page, under the `virtual-server specification` section, you'll find a table with a `schema` section. Download and open the `txt` schema file.
+On the same page, under the `virtual-server specification` section, you'll find a table with a `schema` section. Download and open the `txt` schema file. This file has the same information as the `virtual-server attributes` section, but in a more consumable format.
 
 ### Step 3: Explore the Modules
+
 
 ### Conclusion
