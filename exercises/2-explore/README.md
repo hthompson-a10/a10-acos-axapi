@@ -19,4 +19,4 @@ Navigate to https://github.com/a10networks/a10-ansible/blob/master/a10_ansible/l
 The documenation section starting at https://github.com/a10networks/a10-ansible/blob/master/a10_ansible/library/a10_slb_virtual_server.py#L11, and the argspec section starting at https://github.com/a10networks/a10-ansible/blob/master/a10_ansible/library/a10_slb_virtual_server.py#L653 also give insights into expected arguments, their values, and whether or not they are required.
 
 ### Conclusion
-In this section we've covered where to look for information regarding playbook arguments. In the next sections, we'll begin writing playbooks.
+In this section we've covered where to look for information regarding playbook arguments. In the next sections, we'll begin writing playbooks to configure an AX device to preform server loadbalancings.
