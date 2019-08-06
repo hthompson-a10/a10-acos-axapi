@@ -30,7 +30,7 @@ ansible 2.8.3
 2. Open the `ansible.cfg` file indicated by the `config file` variable above.
 3. Replace the add the following line under the `defaults` sections:
 ```
-library        = /path/to/a10-ansible/a10_ansible/library`
+library        = /path/to/a10-ansible/a10_ansible/library
 ```
 
 ### Conclusion
