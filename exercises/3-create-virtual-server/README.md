@@ -31,8 +31,10 @@ Finally, it's time to add arguments to the playbook. First, make sure to refer t
 ### Conclusion
 
 ### Problems
-3.1: 
+***3.1: Disable the virtual server***
 
-3.2: 
+***3.2: Enable extended stats***
 
-3.3: 
+***3.3: Create a description for the virtual server***
+
+See (insert link here) for solutions
