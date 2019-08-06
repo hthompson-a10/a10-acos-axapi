@@ -26,7 +26,41 @@ Next, add a task section to the playbook:
 Note the action name `a10_slb_virtual_server`. Actions are named based paritally upon their URI and preceded by `a10`. In this case, the URI is `/axapi/v3/slb/virtual_server`. Another examle is `a10_health_monitor` which has the URI `/axapi/v3/health/monitor`.
 
 ### Step 3
-Finally, it's time to add arguments to the playbook. First, make sure to refer to the AXAPI (insert link here).
+Now, we must add connection information in order to talk with the AX device:
+```yaml
+- hosts: localhost
+  name: "Create virtual server"
+  connection: local
+  tasks:
+  - name: Create service group
+    a10_slb_virtual_server:
+      a10_host: "{{ a10_host }}"
+      a10_username: "{{ a10_username }}"
+      a10_password: "{{ a10_password }}"
+      a10_port: "{{ a10_port }}"
+      a10_protocol: "{{ a10_protocol }}"
+```
+
+### Step 4
+Finally, it's time to add arguments to the playbook. First, make sure to refer to the AXAPI (insert link here) or schema. According to the schema, the only required argument is the `name`. For this exercise though, we will be also adding the `ip-address` and a `netmask`.
+
+After these additions, your playbook should appear as follows:
+```yaml
+- hosts: localhost
+  name: "Create virtual server"
+  connection: local
+  tasks:
+  - name: Create service group
+    a10_slb_virtual_server:
+      a10_host: "{{ a10_host }}"
+      a10_username: "{{ a10_username }}"
+      a10_password: "{{ a10_password }}"
+      a10_port: "{{ a10_port }}"
+      a10_protocol: "{{ a10_protocol }}"
+      name: vs1
+      ip_address: 10.0.0.1
+      netmask: 255.255.255.0
+```
 
 ### Conclusion
 
