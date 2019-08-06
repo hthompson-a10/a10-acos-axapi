@@ -1,6 +1,6 @@
 ## Excercise 1: Setup Lab
 For this workshop you'll need:
-- A bare-metal or virtual node running Ansible
+- A bare-metal server or virtual machine running Ansible
 - An A10 Thunder device running ACOS v4.1.4
 
 ### Step 1: Install Ansible
