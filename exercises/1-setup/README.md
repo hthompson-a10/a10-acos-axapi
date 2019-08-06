@@ -34,4 +34,4 @@ library        = /path/to/a10-ansible/a10_ansible/library
 ```
 
 ### Conclusion
-At this stage, you now have a fully setup lab. In the next lesson, we'll cover writing playbooks.
+At this stage, you now have a fully setup lab. In the next lesson (hyperlink to next lesson), we'll cover writing playbooks.
