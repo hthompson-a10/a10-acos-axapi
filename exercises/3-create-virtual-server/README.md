@@ -16,10 +16,10 @@ As perviously discussed in Exercise 2 (insert link here), our architecture is di
 Next, add a task section to the playbook:
 ```yaml
 - hosts: localhost
-  name: "Create virtual server"
+  name: "Create virtual server instance"
   connection: local
   tasks:
-  - name: Create service group
+  - name: Create virtual server
     a10_slb_virtual_server:
 ```
 
@@ -29,10 +29,10 @@ Note the action name `a10_slb_virtual_server`. Actions are named based paritally
 Now, we must add connection information in order to talk with the AX device:
 ```yaml
 - hosts: localhost
-  name: "Create virtual server"
+  name: "Create virtual server instance"
   connection: local
   tasks:
-  - name: Create service group
+  - name: Create virtual server
     a10_slb_virtual_server:
       a10_host: "{{ a10_host }}"
       a10_username: "{{ a10_username }}"
@@ -47,10 +47,10 @@ Finally, it's time to add arguments to the playbook. First, make sure to refer t
 After these additions, your playbook should appear as follows:
 ```yaml
 - hosts: localhost
-  name: "Create virtual server"
+  name: "Create virtual server instance"
   connection: local
   tasks:
-  - name: Create service group
+  - name: Create virtual server
     a10_slb_virtual_server:
       a10_host: "{{ a10_host }}"
       a10_username: "{{ a10_username }}"
