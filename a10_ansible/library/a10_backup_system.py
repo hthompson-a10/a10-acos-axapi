@@ -42,6 +42,10 @@ options:
         description:
         - "password for the remote site"
         required: False
+    encrypt:
+        description:
+        - "Encrypt the backup file"
+        required: False
     use_mgmt_port:
         description:
         - "Use management port as source port"
@@ -55,6 +59,7 @@ options:
         - "Save backup store information"
         required: False
 
+
 """
 
 EXAMPLES = """
@@ -67,7 +72,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["password","remote_file","store_name","use_mgmt_port",]
+AVAILABLE_PROPERTIES = ["encrypt","password","remote_file","store_name","use_mgmt_port",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -97,6 +102,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         password=dict(type='str',),
+        encrypt=dict(type='bool',),
         use_mgmt_port=dict(type='bool',),
         remote_file=dict(type='str',),
         store_name=dict(type='str',)
@@ -202,14 +208,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("system", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["system"]:
+        if current_obj["system"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["system"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -235,8 +249,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("system", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -252,10 +265,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("system", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -292,7 +309,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

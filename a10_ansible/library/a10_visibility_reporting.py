@@ -45,7 +45,7 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'log-transmit-failure'= Total log transmit failures; 'buffer-alloc-failure'= Total reporting buffer allocation failures; 'notif-jobs-in-queue'= Total notification jobs in queue; 'enqueue-fail'= Total enqueue jobs failed; "
+                - "'all'= all; 'log-transmit-failure'= Total log transmit failures; 'buffer-alloc-failure'= Total reporting buffer allocation failures; 'notif-jobs-in-queue'= Total notification jobs in queue; 'enqueue-fail'= Total enqueue jobs failed; 'enqueue-pass'= Total enqueue jobs passed; 'dequeued'= Total jobs dequeued; "
     uuid:
         description:
         - "uuid of the object"
@@ -69,6 +69,7 @@ options:
             value:
                 description:
                 - "Monitored entity telemetry data export interval in mins (Default 5 mins)"
+
 
 """
 
@@ -111,7 +112,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','log-transmit-failure','buffer-alloc-failure','notif-jobs-in-queue','enqueue-fail'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','log-transmit-failure','buffer-alloc-failure','notif-jobs-in-queue','enqueue-fail','enqueue-pass','dequeued'])),
         uuid=dict(type='str',),
         template=dict(type='dict',notification=dict(type='dict',debug=dict(type='dict',uuid=dict(type='str',)),template_name_list=dict(type='list',protocol=dict(type='str',choices=['http','https']),name=dict(type='str',required=True,),use_mgmt_port=dict(type='bool',),https_port=dict(type='int',),debug_mode=dict(type='bool',),relative_uri=dict(type='str',),authentication=dict(type='dict',uuid=dict(type='str',),encrypted=dict(type='str',),relative_logoff_uri=dict(type='str',),api_key_encrypted=dict(type='str',),api_key=dict(type='bool',),auth_password_string=dict(type='str',),auth_password=dict(type='bool',),api_key_string=dict(type='str',),relative_login_uri=dict(type='str',),auth_username=dict(type='str',)),host_name=dict(type='str',),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','sent_successful','send_fail','response_fail'])),http_port=dict(type='int',),ipv6_address=dict(type='str',),test_connectivity=dict(type='bool',),ipv4_address=dict(type='str',),action=dict(type='str',choices=['enable','disable']),uuid=dict(type='str',)))),
         telemetry_export_interval=dict(type='dict',uuid=dict(type='str',),value=dict(type='int',))
@@ -217,14 +218,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("reporting", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["reporting"]:
+        if current_obj["reporting"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["reporting"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -250,8 +259,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("reporting", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -267,10 +275,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("reporting", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -307,7 +319,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

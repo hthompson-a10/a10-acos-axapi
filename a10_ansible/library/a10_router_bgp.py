@@ -129,6 +129,9 @@ options:
             deterministic_med:
                 description:
                 - "Pick the best-MED path among paths advertised from the neighboring AS"
+            override_validation:
+                description:
+                - "override router-id validation"
             fast_external_failover:
                 description:
                 - "Immediately reset session if a link to a directly connected external peer goes down"
@@ -227,6 +230,7 @@ options:
                 description:
                 - "Field ip_cidr_list"
 
+
 """
 
 EXAMPLES = """
@@ -274,7 +278,7 @@ def get_argspec():
         originate=dict(type='bool',),
         maximum_paths_value=dict(type='int',),
         user_tag=dict(type='str',),
-        bgp=dict(type='dict',enforce_first_as=dict(type='bool',),scan_time=dict(type='int',),router_id=dict(type='str',),log_neighbor_changes=dict(type='bool',),deterministic_med=dict(type='bool',),fast_external_failover=dict(type='bool',),local_preference_value=dict(type='int',),nexthop_trigger_count=dict(type='int',),dampening_cfg=dict(type='dict',dampening_max_supress=dict(type='int',),dampening=dict(type='bool',),route_map=dict(type='str',),dampening_penalty=dict(type='int',),dampening_half_time=dict(type='int',),dampening_supress=dict(type='int',),dampening_reuse=dict(type='int',)),always_compare_med=dict(type='bool',),bestpath_cfg=dict(type='dict',ignore=dict(type='bool',),remove_send_med=dict(type='bool',),remove_recv_med=dict(type='bool',),compare_routerid=dict(type='bool',),missing_as_worst=dict(type='bool',))),
+        bgp=dict(type='dict',enforce_first_as=dict(type='bool',),scan_time=dict(type='int',),router_id=dict(type='str',),log_neighbor_changes=dict(type='bool',),deterministic_med=dict(type='bool',),override_validation=dict(type='bool',),fast_external_failover=dict(type='bool',),local_preference_value=dict(type='int',),nexthop_trigger_count=dict(type='int',),dampening_cfg=dict(type='dict',dampening_max_supress=dict(type='int',),dampening=dict(type='bool',),route_map=dict(type='str',),dampening_penalty=dict(type='int',),dampening_half_time=dict(type='int',),dampening_supress=dict(type='int',),dampening_reuse=dict(type='int',)),always_compare_med=dict(type='bool',),bestpath_cfg=dict(type='dict',ignore=dict(type='bool',),remove_send_med=dict(type='bool',),remove_recv_med=dict(type='bool',),compare_routerid=dict(type='bool',),missing_as_worst=dict(type='bool',))),
         auto_summary=dict(type='bool',),
         synchronization=dict(type='bool',),
         timers=dict(type='dict',bgp_holdtime=dict(type='int',),bgp_keepalive=dict(type='int',)),
@@ -387,14 +391,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("bgp", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["bgp"]:
+        if current_obj["bgp"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["bgp"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -420,8 +432,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("bgp", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -437,10 +448,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("bgp", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -477,7 +492,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

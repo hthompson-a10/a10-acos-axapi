@@ -11,7 +11,7 @@ REQUIRED_VALID = (True, "")
 DOCUMENTATION = """
 module: a10_slb_mlb
 description:
-    - Show mlb Statistics
+    - Configure mlb
 short_description: Configures A10 slb.mlb
 author: A10 Networks 2018 
 version_added: 2.4
@@ -45,11 +45,12 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'client_msg_sent'= Client message sent; 'server_msg_received'= Server message received; 'server_conn_created'= Server connection created; 'server_conn_rst'= Server connection reset; 'server_conn_failed'= Server connection failed; 'server_conn_closed'= Server connection closed; 'client_conn_created'= Client connection created; 'client_conn_closed'= Client connection closed; 'client_conn_not_found'= Client connection not found; "
+                - "'all'= all; 'client_msg_sent'= Client message sent; 'server_msg_received'= Server message received; 'server_conn_created'= Server connection created; 'server_conn_rst'= Server connection reset; 'server_conn_failed'= Server connection failed; 'server_conn_closed'= Server connection closed; 'client_conn_created'= Client connection created; 'client_conn_closed'= Client connection closed; 'client_conn_not_found'= Client connection not found; 'msg_dropped'= Message dropped; 'mlb_dcmsg_sent'= Dcmsg sent; 'mlb_dcmsg_received'= Dcmsg received; 'mlb_dcmsg_error'= Dcmsg error; 'mlb_dcmsg_alloc'= Dcmsg alloc; 'mlb_dcmsg_free'= Dcmsg free; "
     uuid:
         description:
         - "uuid of the object"
         required: False
+
 
 """
 
@@ -92,7 +93,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','client_msg_sent','server_msg_received','server_conn_created','server_conn_rst','server_conn_failed','server_conn_closed','client_conn_created','client_conn_closed','client_conn_not_found'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','client_msg_sent','server_msg_received','server_conn_created','server_conn_rst','server_conn_failed','server_conn_closed','client_conn_created','client_conn_closed','client_conn_not_found','msg_dropped','mlb_dcmsg_sent','mlb_dcmsg_received','mlb_dcmsg_error','mlb_dcmsg_alloc','mlb_dcmsg_free'])),
         uuid=dict(type='str',)
     ))
    
@@ -196,14 +197,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("mlb", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["mlb"]:
+        if current_obj["mlb"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["mlb"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -229,8 +238,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("mlb", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -246,10 +254,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("mlb", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -286,7 +298,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

@@ -77,9 +77,9 @@ options:
             sampling_enable:
                 description:
                 - "Field sampling_enable"
-            domain_name:
+            auth_failure_bypass:
                 description:
-                - "Specify domain name to bind to the AAA rule (ex= a10networks.com, www.a10networks.com)"
+                - "Forward client’s request even though authentication has failed"
             authentication_template:
                 description:
                 - "Specify authentication template name to bind to the AAA rule"
@@ -89,6 +89,9 @@ options:
             port:
                 description:
                 - "Specify port number for aaa-rule, default is 0 for all port numbers"
+            domain_name:
+                description:
+                - "Specify domain name to bind to the AAA rule (ex= a10networks.com, www.a10networks.com)"
     sampling_enable:
         description:
         - "Field sampling_enable"
@@ -96,7 +99,7 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'req'= Request; 'req-reject'= Request Rejected; 'req-auth'= Request Matching Authentication Template; 'req-bypass'= Request Bypassed; 'req-skip'= Request Skipped; 'error'= Error; "
+                - "'all'= all; 'req'= Request; 'req-reject'= Request Rejected; 'req-auth'= Request Matching Authentication Template; 'req-bypass'= Request Bypassed; 'req-skip'= Request Skipped; 'error'= Error; 'failure-bypass'= Auth Failure Bypass; "
     user_tag:
         description:
         - "Customized tag"
@@ -105,6 +108,7 @@ options:
         description:
         - "Specify AAA policy name"
         required: True
+
 
 """
 
@@ -148,8 +152,8 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         uuid=dict(type='str',),
-        aaa_rule_list=dict(type='list',index=dict(type='int',required=True,),match_encoded_uri=dict(type='bool',),uuid=dict(type='str',),authorize_policy=dict(type='str',),uri=dict(type='list',match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with']),uri_str=dict(type='str',)),user_tag=dict(type='str',),user_agent=dict(type='list',user_agent_str=dict(type='str',),user_agent_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),host=dict(type='list',host_str=dict(type='str',),host_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),access_list=dict(type='dict',acl_name=dict(type='str',choices=['ip-name','ipv6-name']),acl_id=dict(type='int',),name=dict(type='str',)),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_count','hit_deny','hit_auth','hit_bypass'])),domain_name=dict(type='str',),authentication_template=dict(type='str',),action=dict(type='str',choices=['allow','deny']),port=dict(type='int',)),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','req','req-reject','req-auth','req-bypass','req-skip','error'])),
+        aaa_rule_list=dict(type='list',index=dict(type='int',required=True,),match_encoded_uri=dict(type='bool',),uuid=dict(type='str',),authorize_policy=dict(type='str',),uri=dict(type='list',match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with']),uri_str=dict(type='str',)),user_tag=dict(type='str',),user_agent=dict(type='list',user_agent_str=dict(type='str',),user_agent_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),host=dict(type='list',host_str=dict(type='str',),host_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),access_list=dict(type='dict',acl_name=dict(type='str',choices=['ip-name','ipv6-name']),acl_id=dict(type='int',),name=dict(type='str',)),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_count','hit_deny','hit_auth','hit_bypass','failure_bypass'])),auth_failure_bypass=dict(type='bool',),authentication_template=dict(type='str',),action=dict(type='str',choices=['allow','deny']),port=dict(type='int',),domain_name=dict(type='str',)),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','req','req-reject','req-auth','req-bypass','req-skip','error','failure-bypass'])),
         user_tag=dict(type='str',),
         name=dict(type='str',required=True,)
     ))
@@ -256,14 +260,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("aaa-policy", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["aaa-policy"]:
+        if current_obj["aaa-policy"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["aaa-policy"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -289,8 +301,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("aaa-policy", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -306,10 +317,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("aaa-policy", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -346,7 +361,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

@@ -38,6 +38,43 @@ options:
     partition:
         description:
         - Destination/target partition for object/command
+    max_logfile_size:
+        description:
+        - "Field max_logfile_size"
+        required: False
+        suboptions:
+            uuid:
+                description:
+                - "uuid of the object"
+            value:
+                description:
+                - "Log file size for periodic techsupport (default is 1)"
+    uuid:
+        description:
+        - "uuid of the object"
+        required: False
+    max_partitions:
+        description:
+        - "Field max_partitions"
+        required: False
+        suboptions:
+            uuid:
+                description:
+                - "uuid of the object"
+            value:
+                description:
+                - "Maximum partions to show in per periodic techsupport (default is 30)"
+    interval:
+        description:
+        - "Field interval"
+        required: False
+        suboptions:
+            uuid:
+                description:
+                - "uuid of the object"
+            value:
+                description:
+                - "Showtech interval in minutes (default is 15)"
     disable:
         description:
         - "Disable the polling techreport"
@@ -53,21 +90,7 @@ options:
             uuid:
                 description:
                 - "uuid of the object"
-    interval:
-        description:
-        - "Field interval"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
-            value:
-                description:
-                - "Showtech interval in minutes (default is 15)"
-    uuid:
-        description:
-        - "uuid of the object"
-        required: False
+
 
 """
 
@@ -81,7 +104,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["disable","interval","priority_partition_list","uuid",]
+AVAILABLE_PROPERTIES = ["disable","interval","max_logfile_size","max_partitions","priority_partition_list","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -110,10 +133,12 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        disable=dict(type='bool',),
-        priority_partition_list=dict(type='list',part_name=dict(type='str',required=True,),uuid=dict(type='str',)),
+        max_logfile_size=dict(type='dict',uuid=dict(type='str',),value=dict(type='int',)),
+        uuid=dict(type='str',),
+        max_partitions=dict(type='dict',uuid=dict(type='str',),value=dict(type='int',)),
         interval=dict(type='dict',uuid=dict(type='str',),value=dict(type='int',)),
-        uuid=dict(type='str',)
+        disable=dict(type='bool',),
+        priority_partition_list=dict(type='list',part_name=dict(type='str',required=True,),uuid=dict(type='str',))
     ))
    
 
@@ -216,14 +241,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("techreport", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["techreport"]:
+        if current_obj["techreport"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["techreport"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -249,8 +282,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("techreport", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -266,10 +298,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("techreport", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -306,7 +342,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

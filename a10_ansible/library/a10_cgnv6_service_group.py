@@ -58,6 +58,10 @@ options:
         description:
         - "Share with a partition group (Partition Group Name)"
         required: False
+    traffic_replication_mirror_ip_repl:
+        description:
+        - "Replaces IP with server-IP"
+        required: False
     sampling_enable:
         description:
         - "Field sampling_enable"
@@ -99,6 +103,7 @@ options:
         - "uuid of the object"
         required: False
 
+
 """
 
 EXAMPLES = """
@@ -111,7 +116,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["health_check","member_list","name","protocol","sampling_enable","shared","shared_group","shared_partition","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["health_check","member_list","name","protocol","sampling_enable","shared","shared_group","shared_partition","traffic_replication_mirror_ip_repl","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -145,6 +150,7 @@ def get_argspec():
         name=dict(type='str',required=True,),
         user_tag=dict(type='str',),
         shared_group=dict(type='str',),
+        traffic_replication_mirror_ip_repl=dict(type='bool',),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','server_selection_fail_drop','server_selection_fail_reset','service_peak_conn'])),
         member_list=dict(type='list',port=dict(type='int',required=True,),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','curr_conn','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_conn','total_rev_pkts_inspected','total_rev_pkts_inspected_status_code_2xx','total_rev_pkts_inspected_status_code_non_5xx','curr_req','total_req','total_req_succ','peak_conn','response_time','fastest_rsp_time','slowest_rsp_time','curr_ssl_conn','total_ssl_conn'])),uuid=dict(type='str',),user_tag=dict(type='str',),name=dict(type='str',required=True,)),
         shared=dict(type='bool',),
@@ -254,14 +260,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("service-group", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["service-group"]:
+        if current_obj["service-group"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["service-group"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -287,8 +301,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("service-group", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -304,10 +317,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("service-group", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -344,7 +361,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

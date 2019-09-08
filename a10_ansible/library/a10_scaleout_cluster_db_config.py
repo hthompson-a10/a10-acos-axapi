@@ -9,10 +9,10 @@ REQUIRED_VALID = (True, "")
 
 
 DOCUMENTATION = """
-module: a10_slb_ssl_export_hc_metrics
+module: a10_scaleout_cluster_db_config
 description:
-    - Export SSL metrics to Harmony Controller
-short_description: Configures A10 slb.ssl.export-hc-metrics
+    - Configure zk prarameters
+short_description: Configures A10 scaleout.cluster.db-config
 author: A10 Networks 2018 
 version_added: 2.4
 options:
@@ -38,14 +38,14 @@ options:
     partition:
         description:
         - Destination/target partition for object/command
-    enable:
+    cluster_id:
         description:
-        - "Enable exporting SSL metrics to Harmony Controller"
-        required: False
+        - Key to identify parent object
     uuid:
         description:
         - "uuid of the object"
         required: False
+
 
 """
 
@@ -59,7 +59,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["enable","uuid",]
+AVAILABLE_PROPERTIES = ["uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -88,28 +88,33 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        enable=dict(type='bool',),
         uuid=dict(type='str',)
     ))
    
+    # Parent keys
+    rv.update(dict(
+        cluster_id=dict(type='str', required=True),
+    ))
 
     return rv
 
 def new_url(module):
     """Return the URL for creating a resource"""
     # To create the URL, we need to take the format string and return it with no params
-    url_base = "/axapi/v3/slb/ssl/export-hc-metrics"
+    url_base = "/axapi/v3/scaleout/cluster/{cluster_id}/db-config"
 
     f_dict = {}
+    f_dict["cluster_id"] = module.params["cluster_id"]
 
     return url_base.format(**f_dict)
 
 def existing_url(module):
     """Return the URL for an existing resource"""
     # Build the format dictionary
-    url_base = "/axapi/v3/slb/ssl/export-hc-metrics"
+    url_base = "/axapi/v3/scaleout/cluster/{cluster_id}/db-config"
 
     f_dict = {}
+    f_dict["cluster_id"] = module.params["cluster_id"]
 
     return url_base.format(**f_dict)
 
@@ -192,14 +197,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("export-hc-metrics", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["db-config"]:
+        if current_obj["db-config"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["db-config"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -225,8 +238,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("export-hc-metrics", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -242,16 +254,20 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("db-config", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
 
 def replace(module, result, existing_config):
-    payload = build_json("export-hc-metrics", module)
+    payload = build_json("db-config", module)
     try:
         post_result = module.client.put(existing_url(module), payload)
         if post_result:
@@ -282,7 +298,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

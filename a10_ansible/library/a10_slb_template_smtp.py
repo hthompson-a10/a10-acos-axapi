@@ -68,6 +68,10 @@ options:
         description:
         - "'optional'= STARTTLS is optional requirement; 'enforced'= Must issue STARTTLS command before mail transaction; "
         required: False
+    LF_to_CRLF:
+        description:
+        - "Change the LF to CRLF for smtp end of line"
+        required: False
     template:
         description:
         - "Field template"
@@ -88,6 +92,10 @@ options:
         description:
         - "'optional'= STARTTLS is optional requirement; 'enforced'= Must issue STARTTLS command before mail transaction; "
         required: False
+    error_code_to_client:
+        description:
+        - "Would transfer error code(554) to client, when getting it from connection establishing with real-server"
+        required: False
     service_ready_msg:
         description:
         - "Set SMTP service ready message (SMTP service ready message, default is 'ESMTP mail service ready')"
@@ -96,6 +104,7 @@ options:
         description:
         - "uuid of the object"
         required: False
+
 
 """
 
@@ -109,7 +118,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["client_domain_switching","client_starttls_type","command_disable","name","server_domain","server_starttls_type","service_ready_msg","template","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["client_domain_switching","client_starttls_type","command_disable","error_code_to_client","LF_to_CRLF","name","server_domain","server_starttls_type","service_ready_msg","template","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -143,9 +152,11 @@ def get_argspec():
         server_domain=dict(type='str',),
         client_domain_switching=dict(type='list',service_group=dict(type='str',),match_string=dict(type='str',),switching_type=dict(type='str',choices=['contains','ends-with','starts-with'])),
         client_starttls_type=dict(type='str',choices=['optional','enforced']),
+        LF_to_CRLF=dict(type='bool',),
         template=dict(type='dict',logging=dict(type='str',)),
         command_disable=dict(type='list',disable_type=dict(type='str',choices=['expn','turn','vrfy'])),
         server_starttls_type=dict(type='str',choices=['optional','enforced']),
+        error_code_to_client=dict(type='bool',),
         service_ready_msg=dict(type='str',),
         uuid=dict(type='str',)
     ))
@@ -252,14 +263,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("smtp", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["smtp"]:
+        if current_obj["smtp"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["smtp"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -285,8 +304,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("smtp", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -302,10 +320,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("smtp", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -342,7 +364,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

@@ -71,7 +71,7 @@ options:
                 - "IP-NAT"
             metric_ip_nat:
                 description:
-                - "OSPF default metric (OSPF metric)"
+                - "OSPFV3 default metric (OSPFV3 metric)"
             route_map_ip_nat:
                 description:
                 - "Route map reference (Pointer to route-map entries)"
@@ -80,7 +80,7 @@ options:
                 - "Field vip_floating_list"
             metric_type_ip_nat:
                 description:
-                - "'1'= Set OSPF External Type 1 metrics; '2'= Set OSPF External Type 2 metrics; "
+                - "'1'= Set OSPFV3 External Type 1 metrics; '2'= Set OSPFV3 External Type 2 metrics; "
     abr_type_option:
         description:
         - "'cisco'= Alternative ABR, Cisco implementation (RFC3509); 'ibm'= Alternative ABR, IBM implementation (RFC3509); 'standard'= Standard behavior (RFC2328); "
@@ -221,6 +221,7 @@ options:
             no_summary:
                 description:
                 - "Do not inject inter-area routes into area"
+
 
 """
 
@@ -384,14 +385,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("ospf", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["ospf"]:
+        if current_obj["ospf"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["ospf"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -417,8 +426,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("ospf", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -434,10 +442,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("ospf", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -474,7 +486,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True

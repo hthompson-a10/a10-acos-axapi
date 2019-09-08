@@ -117,6 +117,10 @@ options:
         description:
         - "Thales Kmdata files"
         required: False
+    secured:
+        description:
+        - "Mark as non-exportable"
+        required: False
     ssl_crl:
         description:
         - "SSL Crl File"
@@ -177,6 +181,10 @@ options:
         description:
         - "DNSSEC DS file for child zone"
         required: False
+    cloud_creds:
+        description:
+        - "Cloud Credentials File"
+        required: False
     auth_jwks:
         description:
         - "JSON web key"
@@ -200,6 +208,10 @@ options:
     remote_file:
         description:
         - "profile name for remote url"
+        required: False
+    cloud_config:
+        description:
+        - "Cloud Configuration File"
         required: False
     to_device:
         description:
@@ -300,6 +312,7 @@ options:
         - "DNSSEC DNSKEY(KSK) file for child zone"
         required: False
 
+
 """
 
 EXAMPLES = """
@@ -312,7 +325,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["aflex","auth_jwks","auth_portal","auth_portal_image","auth_saml_idp","bw_list","ca_cert","certificate_type","class_list","class_list_convert","class_list_type","dnssec_dnskey","dnssec_ds","file_inspection_bw_list","geo_location","glm_cert","glm_license","health_external","health_postfile","ip_map_list","local_uri_file","lw_4o6","overwrite","password","pfx_password","policy","remote_file","ssl_cert","ssl_cert_key","ssl_crl","ssl_key","store","store_name","terminal","thales_kmdata","thales_secworld","to_device","usb_license","use_mgmt_port","user_tag","web_category_license","wsdl","xml_schema",]
+AVAILABLE_PROPERTIES = ["aflex","auth_jwks","auth_portal","auth_portal_image","auth_saml_idp","bw_list","ca_cert","certificate_type","class_list","class_list_convert","class_list_type","cloud_config","cloud_creds","dnssec_dnskey","dnssec_ds","file_inspection_bw_list","geo_location","glm_cert","glm_license","health_external","health_postfile","ip_map_list","local_uri_file","lw_4o6","overwrite","password","pfx_password","policy","remote_file","secured","ssl_cert","ssl_cert_key","ssl_crl","ssl_key","store","store_name","terminal","thales_kmdata","thales_secworld","to_device","usb_license","use_mgmt_port","user_tag","web_category_license","wsdl","xml_schema",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -356,6 +369,7 @@ def get_argspec():
         pfx_password=dict(type='str',),
         web_category_license=dict(type='str',),
         thales_kmdata=dict(type='str',),
+        secured=dict(type='bool',),
         ssl_crl=dict(type='str',),
         terminal=dict(type='bool',),
         policy=dict(type='str',),
@@ -367,12 +381,14 @@ def get_argspec():
         class_list=dict(type='str',),
         glm_license=dict(type='str',),
         dnssec_ds=dict(type='str',),
+        cloud_creds=dict(type='str',),
         auth_jwks=dict(type='str',),
         wsdl=dict(type='str',),
         password=dict(type='str',),
         ssl_key=dict(type='str',),
         use_mgmt_port=dict(type='bool',),
         remote_file=dict(type='str',),
+        cloud_config=dict(type='str',),
         to_device=dict(type='dict',web_category_license=dict(type='str',),remote_file=dict(type='str',),glm_license=dict(type='str',),glm_cert=dict(type='str',),device=dict(type='int',),use_mgmt_port=dict(type='bool',),overwrite=dict(type='bool',)),
         user_tag=dict(type='str',),
         store_name=dict(type='str',),
@@ -486,14 +502,22 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def exists(module):
+def get_current_obj(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("import", module)
+def report_changes(current_obj, payload):
+    for k, v in payload["import"]:
+        if current_obj["import"][k]] != v:
+            if result["changed"] != True:
+                result["changed"] = True
+            current_obj["import"][k] = v
+    result.update(**current_obj)
+    return result
+
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -519,8 +543,7 @@ def delete(module, result):
         raise gex
     return result
 
-def update(module, result, existing_config):
-    payload = build_json("import", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -536,10 +559,14 @@ def update(module, result, existing_config):
     return result
 
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
+    payload = build_json("import", module)
+    current_obj = get_current_obj(module)
+    if module['check_mode'] == "yes":
+        return report_changes(current_obj, payload)
+    elif not current_obj:
+        return create(module, result, payload)
     else:
-        return update(module, result, existing_config)
+        return update(module, result, existing_config, payload)
 
 def absent(module, result):
     return delete(module, result)
@@ -576,7 +603,6 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
     partition = module.params["partition"]
 
     valid = True
