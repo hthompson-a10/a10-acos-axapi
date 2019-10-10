@@ -205,7 +205,7 @@ class HttpClient(object):
         url = "/axapi/v3/active-partition"
         payload = {
             "curr_part_name": partition["name"],
-            "shared": partition["shared"]
+            "shared": partition.get("shared", 0)
         }
         try:
             self.post(url, {"active-partition": payload})
@@ -303,7 +303,7 @@ class A10Client(object):
         url = "/axapi/v3/active-partition"
         payload = { 
             "curr_part_name": partition["name"],
-            "shared": partition["shared"]
+            "shared": partition.get("shared", 0)
         }
         try:
             self.post(url, {"active-partition": payload})
