@@ -3,7 +3,7 @@
   hosts: localhost
   tasks:
     - name: Get NIC usage information 
-      a10_rrd_ethernet:
+      a10_rrd_ethernet_all:
         a10_host: "{{ a10_host }}"
         a10_username: "{{ a10_username }}"
         a10_password: "{{ a10_password }}"
