@@ -52,6 +52,59 @@ options:
         description:
         - "uuid of the object"
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            Status:
+                description:
+                - "Field Status"
+            Hash_Algorithm:
+                description:
+                - "Field Hash_Algorithm"
+            Protocol:
+                description:
+                - "Field Protocol"
+            name:
+                description:
+                - "IPsec name"
+            DH_Group:
+                description:
+                - "Field DH_Group"
+            Remote_SPI:
+                description:
+                - "Field Remote_SPI"
+            Local_IP:
+                description:
+                - "Field Local_IP"
+            Anti_Replay:
+                description:
+                - "Field Anti_Replay"
+            Lifebytes:
+                description:
+                - "Field Lifebytes"
+            SA_Index:
+                description:
+                - "Field SA_Index"
+            Peer_IP:
+                description:
+                - "Field Peer_IP"
+            Mode:
+                description:
+                - "Field Mode"
+            NAT_Traversal:
+                description:
+                - "Field NAT_Traversal"
+            Local_SPI:
+                description:
+                - "Field Local_SPI"
+            Encryption_Algorithm:
+                description:
+                - "Field Encryption_Algorithm"
+            Lifetime:
+                description:
+                - "Field Lifetime"
     lifebytes:
         description:
         - "IPsec SA age in megabytes (0 indicates unlimited bytes)"
@@ -73,13 +126,105 @@ options:
             next_hop_v6:
                 description:
                 - "IPsec Next Hop IPv6 Address"
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            anti_replay_num:
+                description:
+                - "Anti-Replay Failure"
+            packets_decrypted:
+                description:
+                - "Decrypted Packets"
+            tunnel_intf_down:
+                description:
+                - "Packet dropped= Tunnel Interface Down"
+            pkt_fail_to_send:
+                description:
+                - "Packet dropped= Failed to send"
+            packets_encrypted:
+                description:
+                - "Encrypted Packets"
+            bytes_encrypted:
+                description:
+                - "Encrypted Bytes"
+            no_tunnel_found:
+                description:
+                - "Packet dropped= No tunnel found"
+            cavium_packets_decrypted:
+                description:
+                - "CAVIUM Decrypted Packets"
+            prefrag_error:
+                description:
+                - "Pre-frag Error"
+            bytes_decrypted:
+                description:
+                - "Decrypted Bytes"
+            invalid_tunnel_id:
+                description:
+                - "Packet dropped= Invalid tunnel ID"
+            pkt_fail_prep_to_send:
+                description:
+                - "Packet dropped= Failed in prepare to send"
+            cavium_packets_encrypted:
+                description:
+                - "CAVIUM Encrypted Packets"
+            packets_err_icv_check:
+                description:
+                - "ICV Check Error"
+            packets_err_inactive:
+                description:
+                - "Inactive Error"
+            cavium_bytes_decrypted:
+                description:
+                - "CAVIUM Decrypted Bytes"
+            sequence_num_rollover:
+                description:
+                - "Sequence Number Rollover"
+            packets_err_pkt_sanity:
+                description:
+                - "Packets Sanity Error"
+            frag_after_encap_frag_packets:
+                description:
+                - "Frag-after-encap Fragment Generated"
+            cavium_bytes_encrypted:
+                description:
+                - "CAVIUM Encrypted Bytes"
+            sequence_num:
+                description:
+                - "Sequence Number"
+            packets_err_lifetime_lifebytes:
+                description:
+                - "Lifetime Lifebytes Error"
+            name:
+                description:
+                - "IPsec name"
+            packets_err_encryption:
+                description:
+                - "Encryption Error"
+            rekey_num:
+                description:
+                - "Rekey Times"
+            prefrag_success:
+                description:
+                - "Pre-frag Success"
+            packets_err_pad_check:
+                description:
+                - "Pad Check Error"
+            no_next_hop:
+                description:
+                - "Packet dropped= No next hop"
+            frag_received:
+                description:
+                - "Fragment Received"
     name:
         description:
         - "IPsec name"
         required: True
     dh_group:
         description:
-        - "'0'= Diffie-Hellman group 0 (Default); '1'= Diffie-Hellman group 1 - 768-bits; '2'= Diffie-Hellman group 2 - 1024-bits; '5'= Diffie-Hellman group 5 - 1536-bits; '14'= Diffie-Hellman group 14 - 2048-bits; '15'= Diffie-Hellman group 15 - 3072-bits; '16'= Diffie-Hellman group 16 - 4096-bits; '18'= Diffie-Hellman group 18 - 8192-bits; '19'= Diffie-Hellman group 19 - 256-bit Elliptic Curve; '20'= Diffie-Hellman group 20 - 384-bit Elliptic Curve; "
+        - "'0'= Diffie-Hellman group 0 (Default); '1'= Diffie-Hellman group 1 - 768-bits; '2'= Diffie-Hellman group 2 - 1024-bits; '5'= Diffie-Hellman group 5 - 1536-bits; '14'= Diffie-Hellman group 14 - 2048-bits; '15'= Diffie-Hellman group 15 - 3072-bits; '16'= Diffie-Hellman group 16 - 4096-bits; '18'= Diffie-Hellman group 18 - 8192-bits; "
         required: False
     proto:
         description:
@@ -104,7 +249,7 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'packets-encrypted'= Encrypted Packets; 'packets-decrypted'= Decrypted Packets; 'anti-replay-num'= Anti-Replay Failure; 'rekey-num'= Rekey Times; 'packets-err-inactive'= Inactive Error; 'packets-err-encryption'= Encryption Error; 'packets-err-pad-check'= Pad Check Error; 'packets-err-pkt-sanity'= Packets Sanity Error; 'packets-err-icv-check'= ICV Check Error; 'packets-err-lifetime-lifebytes'= Lifetime Lifebytes Error; 'bytes-encrypted'= Encrypted Bytes; 'bytes-decrypted'= Decrypted Bytes; 'prefrag-success'= Pre-frag Success; 'prefrag-error'= Pre-frag Error; 'cavium-bytes-encrypted'= CAVIUM Encrypted Bytes; 'cavium-bytes-decrypted'= CAVIUM Decrypted Bytes; 'cavium-packets-encrypted'= CAVIUM Encrypted Packets; 'cavium-packets-decrypted'= CAVIUM Decrypted Packets; 'tunnel-intf-down'= Packet dropped= Tunnel Interface Down; 'pkt-fail-prep-to-send'= Packet dropped= Failed in prepare to send; 'no-next-hop'= Packet dropped= No next hop; 'invalid-tunnel-id'= Packet dropped= Invalid tunnel ID; 'no-tunnel-found'= Packet dropped= No tunnel found; 'pkt-fail-to-send'= Packet dropped= Failed to send; 'frag-after-encap-frag-packets'= Frag-after-encap Fragment Generated; 'frag-received'= Fragment Received; 'sequence-num'= Sequence Number; 'sequence-num-rollover'= Sequence Number Rollover; 'packets-err-nh-check'= Next Header Check Error; "
+                - "'all'= all; 'packets-encrypted'= Encrypted Packets; 'packets-decrypted'= Decrypted Packets; 'anti-replay-num'= Anti-Replay Failure; 'rekey-num'= Rekey Times; 'packets-err-inactive'= Inactive Error; 'packets-err-encryption'= Encryption Error; 'packets-err-pad-check'= Pad Check Error; 'packets-err-pkt-sanity'= Packets Sanity Error; 'packets-err-icv-check'= ICV Check Error; 'packets-err-lifetime-lifebytes'= Lifetime Lifebytes Error; 'bytes-encrypted'= Encrypted Bytes; 'bytes-decrypted'= Decrypted Bytes; 'prefrag-success'= Pre-frag Success; 'prefrag-error'= Pre-frag Error; 'cavium-bytes-encrypted'= CAVIUM Encrypted Bytes; 'cavium-bytes-decrypted'= CAVIUM Decrypted Bytes; 'cavium-packets-encrypted'= CAVIUM Encrypted Packets; 'cavium-packets-decrypted'= CAVIUM Decrypted Packets; 'tunnel-intf-down'= Packet dropped= Tunnel Interface Down; 'pkt-fail-prep-to-send'= Packet dropped= Failed in prepare to send; 'no-next-hop'= Packet dropped= No next hop; 'invalid-tunnel-id'= Packet dropped= Invalid tunnel ID; 'no-tunnel-found'= Packet dropped= No tunnel found; 'pkt-fail-to-send'= Packet dropped= Failed to send; 'frag-after-encap-frag-packets'= Frag-after-encap Fragment Generated; 'frag-received'= Fragment Received; 'sequence-num'= Sequence Number; 'sequence-num-rollover'= Sequence Number Rollover; "
     ike_gateway:
         description:
         - "Gateway to use for IPsec SA"
@@ -163,7 +308,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["anti_replay_window","bind_tunnel","dh_group","enc_cfg","ike_gateway","lifebytes","lifetime","mode","name","proto","sampling_enable","sequence_number_disable","traffic_selector","up","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["anti_replay_window","bind_tunnel","dh_group","enc_cfg","ike_gateway","lifebytes","lifetime","mode","name","oper","proto","sampling_enable","sequence_number_disable","stats","traffic_selector","up","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -193,15 +338,17 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         uuid=dict(type='str',),
+        oper=dict(type='dict',Status=dict(type='str',),Hash_Algorithm=dict(type='str',),Protocol=dict(type='str',),name=dict(type='str',required=True,),DH_Group=dict(type='int',),Remote_SPI=dict(type='str',),Local_IP=dict(type='str',),Anti_Replay=dict(type='str',),Lifebytes=dict(type='str',),SA_Index=dict(type='int',),Peer_IP=dict(type='str',),Mode=dict(type='str',),NAT_Traversal=dict(type='int',),Local_SPI=dict(type='str',),Encryption_Algorithm=dict(type='str',),Lifetime=dict(type='int',)),
         lifebytes=dict(type='int',),
         bind_tunnel=dict(type='dict',tunnel=dict(type='int',),next_hop=dict(type='str',),uuid=dict(type='str',),next_hop_v6=dict(type='str',)),
+        stats=dict(type='dict',anti_replay_num=dict(type='str',),packets_decrypted=dict(type='str',),tunnel_intf_down=dict(type='str',),pkt_fail_to_send=dict(type='str',),packets_encrypted=dict(type='str',),bytes_encrypted=dict(type='str',),no_tunnel_found=dict(type='str',),cavium_packets_decrypted=dict(type='str',),prefrag_error=dict(type='str',),bytes_decrypted=dict(type='str',),invalid_tunnel_id=dict(type='str',),pkt_fail_prep_to_send=dict(type='str',),cavium_packets_encrypted=dict(type='str',),packets_err_icv_check=dict(type='str',),packets_err_inactive=dict(type='str',),cavium_bytes_decrypted=dict(type='str',),sequence_num_rollover=dict(type='str',),packets_err_pkt_sanity=dict(type='str',),frag_after_encap_frag_packets=dict(type='str',),cavium_bytes_encrypted=dict(type='str',),sequence_num=dict(type='str',),packets_err_lifetime_lifebytes=dict(type='str',),name=dict(type='str',required=True,),packets_err_encryption=dict(type='str',),rekey_num=dict(type='str',),prefrag_success=dict(type='str',),packets_err_pad_check=dict(type='str',),no_next_hop=dict(type='str',),frag_received=dict(type='str',)),
         name=dict(type='str',required=True,),
-        dh_group=dict(type='str',choices=['0','1','2','5','14','15','16','18','19','20']),
+        dh_group=dict(type='str',choices=['0','1','2','5','14','15','16','18']),
         proto=dict(type='str',choices=['esp']),
         up=dict(type='bool',),
         user_tag=dict(type='str',),
         anti_replay_window=dict(type='str',choices=['0','32','64','128','256','512','1024']),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','packets-encrypted','packets-decrypted','anti-replay-num','rekey-num','packets-err-inactive','packets-err-encryption','packets-err-pad-check','packets-err-pkt-sanity','packets-err-icv-check','packets-err-lifetime-lifebytes','bytes-encrypted','bytes-decrypted','prefrag-success','prefrag-error','cavium-bytes-encrypted','cavium-bytes-decrypted','cavium-packets-encrypted','cavium-packets-decrypted','tunnel-intf-down','pkt-fail-prep-to-send','no-next-hop','invalid-tunnel-id','no-tunnel-found','pkt-fail-to-send','frag-after-encap-frag-packets','frag-received','sequence-num','sequence-num-rollover','packets-err-nh-check'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','packets-encrypted','packets-decrypted','anti-replay-num','rekey-num','packets-err-inactive','packets-err-encryption','packets-err-pad-check','packets-err-pkt-sanity','packets-err-icv-check','packets-err-lifetime-lifebytes','bytes-encrypted','bytes-decrypted','prefrag-success','prefrag-error','cavium-bytes-encrypted','cavium-bytes-decrypted','cavium-packets-encrypted','cavium-packets-decrypted','tunnel-intf-down','pkt-fail-prep-to-send','no-next-hop','invalid-tunnel-id','no-tunnel-found','pkt-fail-to-send','frag-after-encap-frag-packets','frag-received','sequence-num','sequence-num-rollover'])),
         ike_gateway=dict(type='str',),
         mode=dict(type='str',choices=['tunnel']),
         sequence_number_disable=dict(type='bool',),
@@ -323,9 +470,21 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
 
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -349,7 +508,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -363,7 +521,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -375,7 +532,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -390,7 +546,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("ipsec", module)
     if module.check_mode:

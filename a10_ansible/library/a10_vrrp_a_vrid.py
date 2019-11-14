@@ -48,6 +48,35 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            weight:
+                description:
+                - "Field weight"
+            peer_list:
+                description:
+                - "Field peer_list"
+            vrid_val:
+                description:
+                - "Specify ha VRRP-A vrid"
+            priority:
+                description:
+                - "Field priority"
+            state:
+                description:
+                - "Field state"
+            became_active:
+                description:
+                - "Field became_active"
+            force_standby:
+                description:
+                - "Field force_standby"
+            unit:
+                description:
+                - "Field unit"
     blade_parameters:
         description:
         - "Field blade_parameters"
@@ -88,14 +117,6 @@ options:
             disable:
                 description:
                 - "disable preemption"
-    sampling_enable:
-        description:
-        - "Field sampling_enable"
-        required: False
-        suboptions:
-            counters1:
-                description:
-                - "'all'= all; 'associated_vip_count'= Number of vips associated to vrid; 'associated_vport_count'= Number of vports associated to vrid; 'associated_natpool_count'= Number of nat pools associated to vrid; "
     floating_ip:
         description:
         - "Field floating_ip"
@@ -135,7 +156,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["blade_parameters","floating_ip","follow","preempt_mode","sampling_enable","user_tag","uuid","vrid_val",]
+AVAILABLE_PROPERTIES = ["blade_parameters","floating_ip","follow","oper","preempt_mode","user_tag","uuid","vrid_val",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -164,12 +185,12 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',weight=dict(type='int',),peer_list=dict(type='list',peer_unit=dict(type='int',),peer_state=dict(type='str',choices=['Active','Standby']),peer_priority=dict(type='int',),peer_weight=dict(type='int',)),vrid_val=dict(type='int',required=True,),priority=dict(type='int',),state=dict(type='str',choices=['Active','Standby']),became_active=dict(type='str',),force_standby=dict(type='int',),unit=dict(type='int',)),
         blade_parameters=dict(type='dict',priority=dict(type='int',),fail_over_policy_template=dict(type='str',),uuid=dict(type='str',),tracking_options=dict(type='dict',vlan_cfg=dict(type='list',vlan=dict(type='int',),timeout=dict(type='int',),priority_cost=dict(type='int',)),uuid=dict(type='str',),route=dict(type='dict',ipv6_destination_cfg=dict(type='list',ipv6_destination=dict(type='str',),distance=dict(type='int',),gatewayv6=dict(type='str',),protocol=dict(type='str',choices=['any','static','dynamic']),priority_cost=dict(type='int',)),ip_destination_cfg=dict(type='list',distance=dict(type='int',),protocol=dict(type='str',choices=['any','static','dynamic']),mask=dict(type='str',),priority_cost=dict(type='int',),ip_destination=dict(type='str',),gateway=dict(type='str',))),bgp=dict(type='dict',bgp_ipv4_address_cfg=dict(type='list',bgp_ipv4_address=dict(type='str',),priority_cost=dict(type='int',)),bgp_ipv6_address_cfg=dict(type='list',bgp_ipv6_address=dict(type='str',),priority_cost=dict(type='int',))),interface=dict(type='list',ethernet=dict(type='str',),priority_cost=dict(type='int',)),gateway=dict(type='dict',ipv4_gateway_list=dict(type='list',uuid=dict(type='str',),ip_address=dict(type='str',required=True,),priority_cost=dict(type='int',)),ipv6_gateway_list=dict(type='list',ipv6_address=dict(type='str',required=True,),uuid=dict(type='str',),priority_cost=dict(type='int',))),trunk_cfg=dict(type='list',priority_cost=dict(type='int',),trunk=dict(type='int',),per_port_pri=dict(type='int',)))),
         uuid=dict(type='str',),
         vrid_val=dict(type='int',required=True,),
         user_tag=dict(type='str',),
         preempt_mode=dict(type='dict',threshold=dict(type='int',),disable=dict(type='bool',)),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','associated_vip_count','associated_vport_count','associated_natpool_count'])),
         floating_ip=dict(type='dict',ipv6_address_part_cfg=dict(type='list',ethernet=dict(type='str',),ipv6_address_partition=dict(type='str',),ve=dict(type='int',),trunk=dict(type='int',)),ip_address_cfg=dict(type='list',ip_address=dict(type='str',)),ip_address_part_cfg=dict(type='list',ip_address_partition=dict(type='str',)),ipv6_address_cfg=dict(type='list',ipv6_address=dict(type='str',),ethernet=dict(type='str',),ve=dict(type='int',),trunk=dict(type='int',))),
         follow=dict(type='dict',vrid_lead=dict(type='str',))
     ))
@@ -201,11 +222,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -287,10 +303,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -313,7 +332,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -327,7 +345,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -339,7 +356,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -354,7 +370,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("vrid", module)
     if module.check_mode:
@@ -439,8 +454,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

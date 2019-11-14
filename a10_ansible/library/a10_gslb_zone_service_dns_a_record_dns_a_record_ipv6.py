@@ -65,6 +65,17 @@ options:
         description:
         - "IPV6 address"
         required: True
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            hits:
+                description:
+                - "Number of times the record has been used"
+            dns_a_record_ipv6:
+                description:
+                - "IPV6 address"
     as_backup:
         description:
         - "As backup when fail"
@@ -119,7 +130,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["admin_ip","as_backup","as_replace","disable","dns_a_record_ipv6","no_resp","sampling_enable","static","ttl","uuid","weight",]
+AVAILABLE_PROPERTIES = ["admin_ip","as_backup","as_replace","disable","dns_a_record_ipv6","no_resp","sampling_enable","static","stats","ttl","uuid","weight",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -150,6 +161,7 @@ def get_argspec():
     rv.update(dict(
         as_replace=dict(type='bool',),
         dns_a_record_ipv6=dict(type='str',required=True,),
+        stats=dict(type='dict',hits=dict(type='str',),dns_a_record_ipv6=dict(type='str',required=True,)),
         as_backup=dict(type='bool',),
         weight=dict(type='int',),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','hits'])),
@@ -195,11 +207,6 @@ def existing_url(module):
     f_dict["zone_name"] = module.params["zone_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -285,10 +292,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -312,7 +322,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -326,7 +335,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -338,7 +346,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -353,7 +360,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("dns-a-record-ipv6", module)
     if module.check_mode:
@@ -436,8 +442,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

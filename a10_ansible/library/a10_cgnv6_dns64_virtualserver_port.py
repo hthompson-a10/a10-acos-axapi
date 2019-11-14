@@ -51,6 +51,47 @@ options:
     dns64_virtualserver_name:
         description:
         - Key to identify parent object
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            protocol:
+                description:
+                - "'dns-udp'= DNS service over UDP; "
+            loc_list:
+                description:
+                - "Field loc_list"
+            loc_max_depth:
+                description:
+                - "Field loc_max_depth"
+            level_str:
+                description:
+                - "Field level_str"
+            loc_last:
+                description:
+                - "Field loc_last"
+            state:
+                description:
+                - "Field state"
+            geo_location:
+                description:
+                - "Field geo_location"
+            port_number:
+                description:
+                - "Port"
+            loc_success:
+                description:
+                - "Field loc_success"
+            loc_error:
+                description:
+                - "Field loc_error"
+            group_id:
+                description:
+                - "Field group_id"
+            loc_override:
+                description:
+                - "Field loc_override"
     protocol:
         description:
         - "'dns-udp'= DNS service over UDP; "
@@ -79,20 +120,10 @@ options:
         description:
         - "Port"
         required: True
-    acl_name_list:
+    action:
         description:
-        - "Field acl_name_list"
+        - "'enable'= Enable; 'disable'= Disable; "
         required: False
-        suboptions:
-            acl_name:
-                description:
-                - "Apply an access list name (Named Access List)"
-            acl_name_src_nat_pool:
-                description:
-                - "Policy based Source NAT (NAT Pool or Pool Group)"
-            acl_name_seq_num:
-                description:
-                - "Specify ACL precedence (sequence-number)"
     sampling_enable:
         description:
         - "Field sampling_enable"
@@ -109,24 +140,95 @@ options:
         description:
         - "DNS template (DNS template name)"
         required: False
-    acl_id_list:
+    stats:
         description:
-        - "Field acl_id_list"
+        - "Field stats"
         required: False
         suboptions:
-            acl_id_seq_num:
+            curr_req:
                 description:
-                - "Specify ACL precedence (sequence-number)"
-            acl_id:
+                - "Current requests"
+            protocol:
                 description:
-                - "ACL id VPORT"
-            acl_id_src_nat_pool:
+                - "'dns-udp'= DNS service over UDP; "
+            total_fwd_bytes:
                 description:
-                - "Policy based Source NAT (NAT Pool or Pool Group)"
-    action:
-        description:
-        - "'enable'= Enable; 'disable'= Disable; "
-        required: False
+                - "Total forward bytes"
+            compression_miss:
+                description:
+                - "Number of requests NOT compressed"
+            fastest_rsp_time:
+                description:
+                - "Fastest response time"
+            total_fwd_pkts:
+                description:
+                - "Total forward packets"
+            total_mf_dns_pkts:
+                description:
+                - "Total MF DNS packets"
+            compression_miss_template_exclusion:
+                description:
+                - "Compression miss template exclusion"
+            total_dns_pkts:
+                description:
+                - "Total DNS packets"
+            peak_conn:
+                description:
+                - "Peak connections"
+            compression_bytes_after:
+                description:
+                - "Data out of compression engine"
+            total_req:
+                description:
+                - "Total requests"
+            compression_bytes_before:
+                description:
+                - "Data into compression engine"
+            last_rsp_time:
+                description:
+                - "Last response time"
+            curr_conn:
+                description:
+                - "Current connection"
+            port_number:
+                description:
+                - "Port"
+            total_rev_bytes:
+                description:
+                - "Total reverse bytes"
+            curr_conn_rate:
+                description:
+                - "Current connection rate"
+            compression_miss_no_client:
+                description:
+                - "Compression miss no client"
+            es_total_failure_actions:
+                description:
+                - "Total failure actions"
+            total_conn:
+                description:
+                - "Total connections"
+            compression_hit:
+                description:
+                - "Number of requests compressed"
+            total_rev_pkts:
+                description:
+                - "Total reverse packets"
+            total_l7_conn:
+                description:
+                - "Total L7 connections"
+            total_req_succ:
+                description:
+                - "Total successful requests"
+            total_l4_conn:
+                description:
+                - "Total L4 connections"
+            slowest_rsp_time:
+                description:
+                - "Slowest response time"
+            toatal_tcp_conn:
+                description:
+                - "Total TCP connections"
     pool:
         description:
         - "Specify NAT pool or pool group"
@@ -145,7 +247,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["acl_id_list","acl_name_list","action","auto","pool","port_number","precedence","protocol","sampling_enable","service_group","template_dns","template_policy","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["action","auto","oper","pool","port_number","precedence","protocol","sampling_enable","service_group","stats","template_dns","template_policy","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -174,6 +276,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',protocol=dict(type='str',required=True,choices=['dns-udp']),loc_list=dict(type='str',),loc_max_depth=dict(type='int',),level_str=dict(type='str',),loc_last=dict(type='str',),state=dict(type='str',choices=['All Up','Functional Up','Down','Disb','Unkn']),geo_location=dict(type='str',),port_number=dict(type='int',required=True,),loc_success=dict(type='int',),loc_error=dict(type='int',),group_id=dict(type='int',),loc_override=dict(type='int',)),
         protocol=dict(type='str',required=True,choices=['dns-udp']),
         uuid=dict(type='str',),
         precedence=dict(type='bool',),
@@ -181,12 +284,11 @@ def get_argspec():
         template_policy=dict(type='str',),
         service_group=dict(type='str',),
         port_number=dict(type='int',required=True,),
-        acl_name_list=dict(type='list',acl_name=dict(type='str',),acl_name_src_nat_pool=dict(type='str',),acl_name_seq_num=dict(type='int',)),
+        action=dict(type='str',choices=['enable','disable']),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','curr_conn','total_l4_conn','total_l7_conn','toatal_tcp_conn','total_conn','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_dns_pkts','total_mf_dns_pkts','es_total_failure_actions','compression_bytes_before','compression_bytes_after','compression_hit','compression_miss','compression_miss_no_client','compression_miss_template_exclusion','curr_req','total_req','total_req_succ','peak_conn','curr_conn_rate','last_rsp_time','fastest_rsp_time','slowest_rsp_time'])),
         user_tag=dict(type='str',),
         template_dns=dict(type='str',),
-        acl_id_list=dict(type='list',acl_id_seq_num=dict(type='int',),acl_id=dict(type='int',),acl_id_src_nat_pool=dict(type='str',)),
-        action=dict(type='str',choices=['enable','disable']),
+        stats=dict(type='dict',curr_req=dict(type='str',),protocol=dict(type='str',required=True,choices=['dns-udp']),total_fwd_bytes=dict(type='str',),compression_miss=dict(type='str',),fastest_rsp_time=dict(type='str',),total_fwd_pkts=dict(type='str',),total_mf_dns_pkts=dict(type='str',),compression_miss_template_exclusion=dict(type='str',),total_dns_pkts=dict(type='str',),peak_conn=dict(type='str',),compression_bytes_after=dict(type='str',),total_req=dict(type='str',),compression_bytes_before=dict(type='str',),last_rsp_time=dict(type='str',),curr_conn=dict(type='str',),port_number=dict(type='int',required=True,),total_rev_bytes=dict(type='str',),curr_conn_rate=dict(type='str',),compression_miss_no_client=dict(type='str',),es_total_failure_actions=dict(type='str',),total_conn=dict(type='str',),compression_hit=dict(type='str',),total_rev_pkts=dict(type='str',),total_l7_conn=dict(type='str',),total_req_succ=dict(type='str',),total_l4_conn=dict(type='str',),slowest_rsp_time=dict(type='str',),toatal_tcp_conn=dict(type='str',)),
         pool=dict(type='str',)
     ))
    
@@ -311,9 +413,21 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
 
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -337,7 +451,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -351,7 +464,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -363,7 +475,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -378,7 +489,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("port", module)
     if module.check_mode:

@@ -56,6 +56,74 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'total_q'= Total query; 'total_r'= Total server response; 'hit'= Total cache hit; 'bad_q'= Query not passed; 'encode_q'= Query encoded; 'multiple_q'= Query with multiple questions; 'oversize_q'= Query exceed cache size; 'bad_r'= Response not passed; 'oversize_r'= Response exceed cache size; 'encode_r'= Response encoded; 'multiple_r'= Response with multiple questions; 'answer_r'= Response with multiple answers; 'ttl_r'= Response with short TTL; 'ageout'= Total aged out; 'bad_answer'= Bad Answer; 'ageout_weight'= Total aged for lower weight; 'total_log'= Total stats log sent; 'total_alloc'= Total allocated; 'total_freed'= Total freed; 'current_allocate'= Current allocate; 'current_data_allocate'= Current data allocate; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            ageout:
+                description:
+                - "Total aged out"
+            hit:
+                description:
+                - "Total cache hit"
+            ageout_weight:
+                description:
+                - "Total aged for lower weight"
+            bad_answer:
+                description:
+                - "Bad Answer"
+            multiple_r:
+                description:
+                - "Response with multiple questions"
+            multiple_q:
+                description:
+                - "Query with multiple questions"
+            current_allocate:
+                description:
+                - "Current allocate"
+            bad_q:
+                description:
+                - "Query not passed"
+            total_freed:
+                description:
+                - "Total freed"
+            bad_r:
+                description:
+                - "Response not passed"
+            oversize_r:
+                description:
+                - "Response exceed cache size"
+            answer_r:
+                description:
+                - "Response with multiple answers"
+            encode_q:
+                description:
+                - "Query encoded"
+            total_alloc:
+                description:
+                - "Total allocated"
+            total_q:
+                description:
+                - "Total query"
+            total_r:
+                description:
+                - "Total server response"
+            oversize_q:
+                description:
+                - "Query exceed cache size"
+            total_log:
+                description:
+                - "Total stats log sent"
+            current_data_allocate:
+                description:
+                - "Current data allocate"
+            ttl_r:
+                description:
+                - "Response with short TTL"
+            encode_r:
+                description:
+                - "Response encoded"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +142,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -104,6 +172,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_q','total_r','hit','bad_q','encode_q','multiple_q','oversize_q','bad_r','oversize_r','encode_r','multiple_r','answer_r','ttl_r','ageout','bad_answer','ageout_weight','total_log','total_alloc','total_freed','current_allocate','current_data_allocate'])),
+        stats=dict(type='dict',ageout=dict(type='str',),hit=dict(type='str',),ageout_weight=dict(type='str',),bad_answer=dict(type='str',),multiple_r=dict(type='str',),multiple_q=dict(type='str',),current_allocate=dict(type='str',),bad_q=dict(type='str',),total_freed=dict(type='str',),bad_r=dict(type='str',),oversize_r=dict(type='str',),answer_r=dict(type='str',),encode_q=dict(type='str',),total_alloc=dict(type='str',),total_q=dict(type='str',),total_r=dict(type='str',),oversize_q=dict(type='str',),total_log=dict(type='str',),current_data_allocate=dict(type='str',),ttl_r=dict(type='str',),encode_r=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +196,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +281,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +311,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +324,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +335,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +349,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("dns-cache", module)
     if module.check_mode:
@@ -368,8 +431,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

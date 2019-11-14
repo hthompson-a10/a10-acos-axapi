@@ -12,7 +12,7 @@ REQUIRED_VALID = (True, "")
 DOCUMENTATION = """
 module: a10_slb_rate_limit_log
 description:
-    - Configure rate limit logging
+    - Show rate limit logging statistics
 short_description: Configures A10 slb.rate-limit-log
 author: A10 Networks 2018 
 version_added: 2.4
@@ -55,7 +55,54 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'total_log_times'= Total log times; 'total_log_msg'= Total log messages; 'local_log_msg'= Local log messages; 'remote_log_msg'= Remote log messages; 'local_log_rate'= Local rate (per sec); 'remote_log_rate'= Remote rate (per sec); 'msg_too_big'= Log message too big; 'buff_alloc_fail'= Buffer alloc fail; 'no_route'= No route; 'buff_send_fail'= Buffer send fail; 'alloc_conn'= Log-session alloc; 'free_conn'= Log-session free; 'conn_alloc_fail'= Log-session alloc fail; 'no_repeat_msg'= No repeat message; 'local_log_dropped'= Local log dropped due to rate-limit; "
+                - "'all'= all; 'total_log_times'= Total log times; 'total_log_msg'= Total log messages; 'local_log_msg'= Local log messages; 'remote_log_msg'= Remote log messages; 'local_log_rate'= Local rate (per sec); 'remote_log_rate'= Remote rate (per sec); 'msg_too_big'= Log message too big; 'buff_alloc_fail'= Buffer alloc fail; 'no_route'= No route; 'buff_send_fail'= Buffer send fail; 'alloc_conn'= Log-session alloc; 'free_conn'= Log-session free; 'conn_alloc_fail'= Log-session alloc fail; 'no_repeat_msg'= No repeat message; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            msg_too_big:
+                description:
+                - "Log message too big"
+            buff_send_fail:
+                description:
+                - "Buffer send fail"
+            total_log_times:
+                description:
+                - "Total log times"
+            remote_log_rate:
+                description:
+                - "Remote rate (per sec)"
+            alloc_conn:
+                description:
+                - "Log-session alloc"
+            free_conn:
+                description:
+                - "Log-session free"
+            conn_alloc_fail:
+                description:
+                - "Log-session alloc fail"
+            local_log_msg:
+                description:
+                - "Local log messages"
+            no_repeat_msg:
+                description:
+                - "No repeat message"
+            no_route:
+                description:
+                - "No route"
+            remote_log_msg:
+                description:
+                - "Remote log messages"
+            total_log_msg:
+                description:
+                - "Total log messages"
+            local_log_rate:
+                description:
+                - "Local rate (per sec)"
+            buff_alloc_fail:
+                description:
+                - "Buffer alloc fail"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +121,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -103,7 +150,8 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_log_times','total_log_msg','local_log_msg','remote_log_msg','local_log_rate','remote_log_rate','msg_too_big','buff_alloc_fail','no_route','buff_send_fail','alloc_conn','free_conn','conn_alloc_fail','no_repeat_msg','local_log_dropped'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_log_times','total_log_msg','local_log_msg','remote_log_msg','local_log_rate','remote_log_rate','msg_too_big','buff_alloc_fail','no_route','buff_send_fail','alloc_conn','free_conn','conn_alloc_fail','no_repeat_msg'])),
+        stats=dict(type='dict',msg_too_big=dict(type='str',),buff_send_fail=dict(type='str',),total_log_times=dict(type='str',),remote_log_rate=dict(type='str',),alloc_conn=dict(type='str',),free_conn=dict(type='str',),conn_alloc_fail=dict(type='str',),local_log_msg=dict(type='str',),no_repeat_msg=dict(type='str',),no_route=dict(type='str',),remote_log_msg=dict(type='str',),total_log_msg=dict(type='str',),local_log_rate=dict(type='str',),buff_alloc_fail=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +175,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +260,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +290,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +303,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +314,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +328,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("rate-limit-log", module)
     if module.check_mode:
@@ -368,8 +410,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

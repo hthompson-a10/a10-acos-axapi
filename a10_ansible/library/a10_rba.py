@@ -94,9 +94,9 @@ options:
         - "Field role_list"
         required: False
         suboptions:
-            default_privilege:
+            uuid:
                 description:
-                - "'no-access'= no-access; 'read'= read; 'write'= write; "
+                - "uuid of the object"
             name:
                 description:
                 - "Name for the RBA role"
@@ -106,12 +106,6 @@ options:
             rule_list:
                 description:
                 - "Field rule_list"
-            partition_only:
-                description:
-                - "Partition RBA Role"
-            uuid:
-                description:
-                - "uuid of the object"
     uuid:
         description:
         - "uuid of the object"
@@ -160,9 +154,9 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         action=dict(type='str',choices=['enable','disable']),
-        group_list=dict(type='list',partition_list=dict(type='list',partition_name=dict(type='str',required=True,),role_list=dict(type='list',role=dict(type='str',)),uuid=dict(type='str',),user_tag=dict(type='str',),rule_list=dict(type='list',operation=dict(type='str',choices=['no-access','read','oper','write']),object=dict(type='str',))),user_list=dict(type='list',user=dict(type='str',)),name=dict(type='str',required=True,),user_tag=dict(type='str',),uuid=dict(type='str',)),
-        user_list=dict(type='list',partition_list=dict(type='list',partition_name=dict(type='str',required=True,),role_list=dict(type='list',role=dict(type='str',)),uuid=dict(type='str',),user_tag=dict(type='str',),rule_list=dict(type='list',operation=dict(type='str',choices=['no-access','read','oper','write']),object=dict(type='str',))),name=dict(type='str',required=True,),user_tag=dict(type='str',),uuid=dict(type='str',)),
-        role_list=dict(type='list',default_privilege=dict(type='str',choices=['no-access','read','write']),name=dict(type='str',required=True,),user_tag=dict(type='str',),rule_list=dict(type='list',operation=dict(type='str',choices=['no-access','read','oper','write']),object=dict(type='str',)),partition_only=dict(type='bool',),uuid=dict(type='str',)),
+        group_list=dict(type='list',partition_list=dict(type='list',partition_name=dict(type='str',required=True,),role_list=dict(type='list',role=dict(type='str',)),uuid=dict(type='str',),user_tag=dict(type='str',),rule_list=dict(type='list',operation=dict(type='str',choices=['no-access','read','write']),object=dict(type='str',))),user_list=dict(type='list',user=dict(type='str',)),name=dict(type='str',required=True,),user_tag=dict(type='str',),uuid=dict(type='str',)),
+        user_list=dict(type='list',partition_list=dict(type='list',partition_name=dict(type='str',required=True,),role_list=dict(type='list',role=dict(type='str',)),uuid=dict(type='str',),user_tag=dict(type='str',),rule_list=dict(type='list',operation=dict(type='str',choices=['no-access','read','write']),object=dict(type='str',))),name=dict(type='str',required=True,),user_tag=dict(type='str',),uuid=dict(type='str',)),
+        role_list=dict(type='list',uuid=dict(type='str',),name=dict(type='str',required=True,),user_tag=dict(type='str',),rule_list=dict(type='list',operation=dict(type='str',choices=['no-access','read','write']),object=dict(type='str',))),
         uuid=dict(type='str',)
     ))
    
@@ -186,16 +180,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -276,12 +260,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -303,7 +281,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -317,7 +294,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -329,7 +305,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -344,7 +319,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("rba", module)
     if module.check_mode:
@@ -427,10 +401,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

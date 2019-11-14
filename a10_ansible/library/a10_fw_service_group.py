@@ -48,6 +48,32 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            state:
+                description:
+                - "Field state"
+            name:
+                description:
+                - "FW Service Name"
+            member_list:
+                description:
+                - "Field member_list"
+            servers_up:
+                description:
+                - "Field servers_up"
+            servers_down:
+                description:
+                - "Field servers_down"
+            servers_total:
+                description:
+                - "Field servers_total"
+            servers_disable:
+                description:
+                - "Field servers_disable"
     protocol:
         description:
         - "'tcp'= TCP LB service; 'udp'= UDP LB service; "
@@ -59,10 +85,6 @@ options:
     user_tag:
         description:
         - "Customized tag"
-        required: False
-    traffic_replication_mirror_ip_repl:
-        description:
-        - "Replaces IP with server-IP"
         required: False
     sampling_enable:
         description:
@@ -92,6 +114,26 @@ options:
             name:
                 description:
                 - "Member name"
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            member_list:
+                description:
+                - "Field member_list"
+            server_selection_fail_drop:
+                description:
+                - "Service selection fail drop"
+            server_selection_fail_reset:
+                description:
+                - "Service selection fail reset"
+            service_peak_conn:
+                description:
+                - "Service peak connection"
+            name:
+                description:
+                - "FW Service Name"
     health_check:
         description:
         - "Health Check (Monitor Name)"
@@ -114,7 +156,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["health_check","member_list","name","protocol","sampling_enable","traffic_replication_mirror_ip_repl","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["health_check","member_list","name","oper","protocol","sampling_enable","stats","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -143,12 +185,13 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',state=dict(type='str',choices=['All Up','Functional Up','Partial Up','Down','Disabled','Unknown']),name=dict(type='str',required=True,),member_list=dict(type='list',oper=dict(type='dict',state=dict(type='str',choices=['UP','DOWN','MAINTENANCE'])),name=dict(type='str',required=True,),port=dict(type='int',required=True,)),servers_up=dict(type='int',),servers_down=dict(type='int',),servers_total=dict(type='int',),servers_disable=dict(type='int',)),
         protocol=dict(type='str',choices=['tcp','udp']),
         uuid=dict(type='str',),
         user_tag=dict(type='str',),
-        traffic_replication_mirror_ip_repl=dict(type='bool',),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','server_selection_fail_drop','server_selection_fail_reset','service_peak_conn'])),
         member_list=dict(type='list',port=dict(type='int',required=True,),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','curr_conn','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_conn','total_rev_pkts_inspected','total_rev_pkts_inspected_status_code_2xx','total_rev_pkts_inspected_status_code_non_5xx','curr_req','total_req','total_req_succ','peak_conn','response_time','fastest_rsp_time','slowest_rsp_time'])),uuid=dict(type='str',),user_tag=dict(type='str',),name=dict(type='str',required=True,)),
+        stats=dict(type='dict',member_list=dict(type='list',stats=dict(type='dict',curr_req=dict(type='str',),total_rev_bytes=dict(type='str',),peak_conn=dict(type='str',),total_conn=dict(type='str',),fastest_rsp_time=dict(type='str',),total_fwd_pkts=dict(type='str',),total_req=dict(type='str',),total_rev_pkts=dict(type='str',),total_rev_pkts_inspected_status_code_2xx=dict(type='str',),total_req_succ=dict(type='str',),curr_conn=dict(type='str',),total_rev_pkts_inspected_status_code_non_5xx=dict(type='str',),total_fwd_bytes=dict(type='str',),slowest_rsp_time=dict(type='str',),response_time=dict(type='str',),total_rev_pkts_inspected=dict(type='str',)),name=dict(type='str',required=True,),port=dict(type='int',required=True,)),server_selection_fail_drop=dict(type='str',),server_selection_fail_reset=dict(type='str',),service_peak_conn=dict(type='str',),name=dict(type='str',required=True,)),
         health_check=dict(type='str',),
         name=dict(type='str',required=True,)
     ))
@@ -266,9 +309,21 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
 
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -292,7 +347,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -306,7 +360,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -318,7 +371,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -333,7 +385,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("service-group", module)
     if module.check_mode:

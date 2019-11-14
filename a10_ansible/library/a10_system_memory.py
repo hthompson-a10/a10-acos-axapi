@@ -48,6 +48,38 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            N2_memory:
+                description:
+                - "Field N2_memory"
+            Used:
+                description:
+                - "Field Used"
+            TCP_memory:
+                description:
+                - "Field TCP_memory"
+            aFleX_memory:
+                description:
+                - "Field aFleX_memory"
+            Free:
+                description:
+                - "Field Free"
+            System_memory:
+                description:
+                - "Field System_memory"
+            SSL_memory:
+                description:
+                - "Field SSL_memory"
+            Usage:
+                description:
+                - "Field Usage"
+            Total:
+                description:
+                - "Field Total"
     sampling_enable:
         description:
         - "Field sampling_enable"
@@ -56,6 +88,14 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'usage-percentage'= Memory Usage percentage; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            usage_percentage:
+                description:
+                - "Memory Usage percentage"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +114,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["oper","sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -103,7 +143,9 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',N2_memory=dict(type='list',Max=dict(type='int',),Allocated=dict(type='int',),Object_size=dict(type='int',)),Used=dict(type='int',),TCP_memory=dict(type='list',Max=dict(type='int',),Allocated=dict(type='int',),Object_size=dict(type='int',)),aFleX_memory=dict(type='list',Max=dict(type='int',),Allocated=dict(type='int',),Object_size=dict(type='int',)),Free=dict(type='int',),System_memory=dict(type='list',Max=dict(type='int',),Allocated=dict(type='int',),Object_size=dict(type='int',)),SSL_memory=dict(type='list',Max=dict(type='int',),Allocated=dict(type='int',),Object_size=dict(type='int',)),Usage=dict(type='str',),Total=dict(type='int',)),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','usage-percentage'])),
+        stats=dict(type='dict',usage_percentage=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -218,9 +260,21 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
 
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +298,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +311,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +322,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +336,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("memory", module)
     if module.check_mode:

@@ -48,29 +48,18 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    cloud_query_disable:
+        description:
+        - "Disables cloud queries for URL's not present in local database(default enable)"
+        required: False
     rtu_update_interval:
         description:
         - "Interval to check for real time updates if enabled in mins(default 60)"
         required: False
-    database_server:
+    enable:
         description:
-        - "BrightCloud Database Server"
+        - "Enable BrightCloud SDK"
         required: False
-    port:
-        description:
-        - "BrightCloud Query Server Listening Port(default 80)"
-        required: False
-    statistics:
-        description:
-        - "Field statistics"
-        required: False
-        suboptions:
-            sampling_enable:
-                description:
-                - "Field sampling_enable"
-            uuid:
-                description:
-                - "uuid of the object"
     intercepted_urls:
         description:
         - "Field intercepted_urls"
@@ -79,17 +68,92 @@ options:
             uuid:
                 description:
                 - "uuid of the object"
-    uuid:
+    use_mgmt_port:
         description:
-        - "uuid of the object"
+        - "Use management interface for all communication with BrightCloud"
+        required: False
+    database_server:
+        description:
+        - "BrightCloud Database Server"
+        required: False
+    db_update_time:
+        description:
+        - "Time of day to update database (default= 00=00)"
         required: False
     server_timeout:
         description:
         - "BrightCloud Servers Timeout in seconds (default= 15s)"
         required: False
-    cloud_query_cache_size:
+    oper:
         description:
-        - "Maximum cache size for storing cloud query results"
+        - "Field oper"
+        required: False
+        suboptions:
+            web_cat_connection_status:
+                description:
+                - "Field web_cat_connection_status"
+            web_cat_last_update_time:
+                description:
+                - "Field web_cat_last_update_time"
+            bypassed_urls:
+                description:
+                - "Field bypassed_urls"
+            intercepted_urls:
+                description:
+                - "Field intercepted_urls"
+            license:
+                description:
+                - "Field license"
+            url:
+                description:
+                - "Field url"
+            web_cat_version:
+                description:
+                - "Field web_cat_version"
+            web_cat_database_version:
+                description:
+                - "Field web_cat_database_version"
+            web_cat_database_size:
+                description:
+                - "Field web_cat_database_size"
+            web_cat_next_update_time:
+                description:
+                - "Field web_cat_next_update_time"
+            web_cat_database_status:
+                description:
+                - "Field web_cat_database_status"
+            web_cat_database_name:
+                description:
+                - "Field web_cat_database_name"
+            web_cat_last_successful_connection:
+                description:
+                - "Field web_cat_last_successful_connection"
+            web_cat_failure_reason:
+                description:
+                - "Field web_cat_failure_reason"
+    server:
+        description:
+        - "BrightCloud Query Server"
+        required: False
+    url:
+        description:
+        - "Field url"
+        required: False
+        suboptions:
+            uuid:
+                description:
+                - "uuid of the object"
+    bypassed_urls:
+        description:
+        - "Field bypassed_urls"
+        required: False
+        suboptions:
+            uuid:
+                description:
+                - "uuid of the object"
+    remote_syslog_enable:
+        description:
+        - "Enable data plane logging to a remote syslog server"
         required: False
     rtu_update_disable:
         description:
@@ -130,57 +194,9 @@ options:
             secret_string:
                 description:
                 - "password value"
-    ssl_port:
-        description:
-        - "BrightCloud Servers SSL Port(default 443)"
-        required: False
-    enable:
-        description:
-        - "Enable BrightCloud SDK"
-        required: False
-    bypassed_urls:
-        description:
-        - "Field bypassed_urls"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
-    remote_syslog_enable:
-        description:
-        - "Enable data plane logging to a remote syslog server"
-        required: False
-    rtu_cache_size:
-        description:
-        - "Maximum cache size for storing RTU updates"
-        required: False
-    cloud_query_disable:
-        description:
-        - "Disables cloud queries for URL's not present in local database(default enable)"
-        required: False
-    use_mgmt_port:
-        description:
-        - "Use management interface for all communication with BrightCloud"
-        required: False
     license:
         description:
         - "Field license"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
-    db_update_time:
-        description:
-        - "Time of day to update database (default= 00=00)"
-        required: False
-    server:
-        description:
-        - "BrightCloud Query Server"
-        required: False
-    url:
-        description:
-        - "Field url"
         required: False
         suboptions:
             uuid:
@@ -455,6 +471,18 @@ options:
             parked_domains:
                 description:
                 - "Category Parked Domains"
+    port:
+        description:
+        - "BrightCloud Query Server Listening Port(default 80)"
+        required: False
+    ssl_port:
+        description:
+        - "BrightCloud Servers SSL Port(default 443)"
+        required: False
+    uuid:
+        description:
+        - "uuid of the object"
+        required: False
 
 
 """
@@ -469,7 +497,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["bypassed_urls","category_list_list","cloud_query_cache_size","cloud_query_disable","database_server","db_update_time","enable","intercepted_urls","license","port","proxy_server","remote_syslog_enable","rtu_cache_size","rtu_update_disable","rtu_update_interval","server","server_timeout","ssl_port","statistics","url","use_mgmt_port","uuid",]
+AVAILABLE_PROPERTIES = ["bypassed_urls","category_list_list","cloud_query_disable","database_server","db_update_time","enable","intercepted_urls","license","oper","port","proxy_server","remote_syslog_enable","rtu_update_disable","rtu_update_interval","server","server_timeout","ssl_port","url","use_mgmt_port","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -498,28 +526,26 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        rtu_update_interval=dict(type='int',),
-        database_server=dict(type='str',),
-        port=dict(type='int',),
-        statistics=dict(type='dict',sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','db-lookup','cloud-cache-lookup','cloud-lookup','rtu-lookup','lookup-latency','db-mem','rtu-cache-mem','lookup-cache-mem'])),uuid=dict(type='str',)),
-        intercepted_urls=dict(type='dict',uuid=dict(type='str',)),
-        uuid=dict(type='str',),
-        server_timeout=dict(type='int',),
-        cloud_query_cache_size=dict(type='int',),
-        rtu_update_disable=dict(type='bool',),
-        proxy_server=dict(type='dict',username=dict(type='str',),domain=dict(type='str',),uuid=dict(type='str',),https_port=dict(type='int',),encrypted=dict(type='str',),proxy_host=dict(type='str',),auth_type=dict(type='str',choices=['ntlm','basic']),http_port=dict(type='int',),password=dict(type='bool',),secret_string=dict(type='str',)),
-        ssl_port=dict(type='int',),
-        enable=dict(type='bool',),
-        bypassed_urls=dict(type='dict',uuid=dict(type='str',)),
-        remote_syslog_enable=dict(type='bool',),
-        rtu_cache_size=dict(type='int',),
         cloud_query_disable=dict(type='bool',),
+        rtu_update_interval=dict(type='int',),
+        enable=dict(type='bool',),
+        intercepted_urls=dict(type='dict',uuid=dict(type='str',)),
         use_mgmt_port=dict(type='bool',),
-        license=dict(type='dict',uuid=dict(type='str',)),
+        database_server=dict(type='str',),
         db_update_time=dict(type='str',),
+        server_timeout=dict(type='int',),
+        oper=dict(type='dict',web_cat_connection_status=dict(type='str',),web_cat_last_update_time=dict(type='str',),bypassed_urls=dict(type='dict',oper=dict(type='dict',all_urls=dict(type='str',choices=['true']),url_list=dict(type='list',url_name=dict(type='str',)),number_of_urls=dict(type='int',),url_name=dict(type='str',))),intercepted_urls=dict(type='dict',oper=dict(type='dict',all_urls=dict(type='str',choices=['true']),url_list=dict(type='list',url_name=dict(type='str',)),number_of_urls=dict(type='int',),url_name=dict(type='str',))),license=dict(type='dict',oper=dict(type='dict',license_status=dict(type='str',),grace_period=dict(type='str',),is_grace=dict(type='str',),license_expiry=dict(type='str',),serial_number=dict(type='str',),remaining_period=dict(type='str',),license_type=dict(type='str',),module_status=dict(type='str',))),url=dict(type='dict',oper=dict(type='dict',category_list=dict(type='list',category=dict(type='str',)),name=dict(type='str',))),web_cat_version=dict(type='str',),web_cat_database_version=dict(type='int',),web_cat_database_size=dict(type='str',),web_cat_next_update_time=dict(type='str',),web_cat_database_status=dict(type='str',),web_cat_database_name=dict(type='str',),web_cat_last_successful_connection=dict(type='str',),web_cat_failure_reason=dict(type='str',)),
         server=dict(type='str',),
         url=dict(type='dict',uuid=dict(type='str',)),
-        category_list_list=dict(type='list',streaming_media=dict(type='bool',),weapons=dict(type='bool',),uuid=dict(type='str',),entertainment_and_arts=dict(type='bool',),cdns=dict(type='bool',),financial_services=dict(type='bool',),social_network=dict(type='bool',),government=dict(type='bool',),web_advertisements=dict(type='bool',),fashion_and_beauty=dict(type='bool',),computer_and_internet_security=dict(type='bool',),name=dict(type='str',required=True,),real_estate=dict(type='bool',),user_tag=dict(type='str',),web_based_email=dict(type='bool',),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','uncategorized','real-estate','computer-and-internet-security','financial-services','business-and-economy','computer-and-internet-info','auctions','shopping','cult-and-occult','travel','drugs','adult-and-pornography','home-and-garden','military','social-network','dead-sites','stock-advice-and-tools','training-and-tools','dating','sex-education','religion','entertainment-and-arts','personal-sites-and-blogs','legal','local-information','streaming-media','job-search','gambling','translation','reference-and-research','shareware-and-freeware','peer-to-peer','marijuana','hacking','games','philosophy-and-politics','weapons','pay-to-surf','hunting-and-fishing','society','educational-institutions','online-greeting-cards','sports','swimsuits-and-intimate-apparel','questionable','kids','hate-and-racism','personal-storage','violence','keyloggers-and-monitoring','search-engines','internet-portals','web-advertisements','cheating','gross','web-based-email','malware-sites','phishing-and-other-fraud','proxy-avoid-and-anonymizers','spyware-and-adware','music','government','nudity','news-and-media','illegal','CDNs','internet-communications','bot-nets','abortion','health-and-medicine','confirmed-SPAM-sources','SPAM-URLs','unconfirmed-SPAM-sources','open-HTTP-proxies','dynamic-comment','parked-domains','alcohol-and-tobacco','private-IP-addresses','image-and-video-search','fashion-and-beauty','recreation-and-hobbies','motor-vehicles','web-hosting-sites','food-and-dining'])),recreation_and_hobbies=dict(type='bool',),business_and_economy=dict(type='bool',),confirmed_spam_sources=dict(type='bool',),philosophy_and_politics=dict(type='bool',),society=dict(type='bool',),motor_vehicles=dict(type='bool',),proxy_avoid_and_anonymizers=dict(type='bool',),gross=dict(type='bool',),legal=dict(type='bool',),bot_nets=dict(type='bool',),religion=dict(type='bool',),private_ip_addresses=dict(type='bool',),dating=dict(type='bool',),pay_to_surf=dict(type='bool',),reference_and_research=dict(type='bool',),keyloggers_and_monitoring=dict(type='bool',),kids=dict(type='bool',),online_greeting_cards=dict(type='bool',),violence=dict(type='bool',),games=dict(type='bool',),auctions=dict(type='bool',),military=dict(type='bool',),alcohol_and_tobacco=dict(type='bool',),stock_advice_and_tools=dict(type='bool',),news_and_media=dict(type='bool',),cult_and_occult=dict(type='bool',),food_and_dining=dict(type='bool',),cheating=dict(type='bool',),illegal=dict(type='bool',),local_information=dict(type='bool',),sports=dict(type='bool',),music=dict(type='bool',),shareware_and_freeware=dict(type='bool',),spyware_and_adware=dict(type='bool',),questionable=dict(type='bool',),shopping=dict(type='bool',),drugs=dict(type='bool',),web_hosting_sites=dict(type='bool',),malware_sites=dict(type='bool',),dynamic_comment=dict(type='bool',),translation=dict(type='bool',),job_search=dict(type='bool',),hunting_and_fishing=dict(type='bool',),search_engines=dict(type='bool',),educational_institutions=dict(type='bool',),internet_portals=dict(type='bool',),computer_and_internet_info=dict(type='bool',),abortion=dict(type='bool',),hacking=dict(type='bool',),adult_and_pornography=dict(type='bool',),phishing_and_other_fraud=dict(type='bool',),nudity=dict(type='bool',),health_and_medicine=dict(type='bool',),marijuana=dict(type='bool',),home_and_garden=dict(type='bool',),personal_storage=dict(type='bool',),sex_education=dict(type='bool',),swimsuits_and_intimate_apparel=dict(type='bool',),dead_sites=dict(type='bool',),travel=dict(type='bool',),hate_and_racism=dict(type='bool',),open_http_proxies=dict(type='bool',),internet_communications=dict(type='bool',),gambling=dict(type='bool',),peer_to_peer=dict(type='bool',),uncategorized=dict(type='bool',),personal_sites_and_blogs=dict(type='bool',),spam_urls=dict(type='bool',),unconfirmed_spam_sources=dict(type='bool',),image_and_video_search=dict(type='bool',),training_and_tools=dict(type='bool',),parked_domains=dict(type='bool',))
+        bypassed_urls=dict(type='dict',uuid=dict(type='str',)),
+        remote_syslog_enable=dict(type='bool',),
+        rtu_update_disable=dict(type='bool',),
+        proxy_server=dict(type='dict',username=dict(type='str',),domain=dict(type='str',),uuid=dict(type='str',),https_port=dict(type='int',),encrypted=dict(type='str',),proxy_host=dict(type='str',),auth_type=dict(type='str',choices=['ntlm','basic']),http_port=dict(type='int',),password=dict(type='bool',),secret_string=dict(type='str',)),
+        license=dict(type='dict',uuid=dict(type='str',)),
+        category_list_list=dict(type='list',streaming_media=dict(type='bool',),weapons=dict(type='bool',),uuid=dict(type='str',),entertainment_and_arts=dict(type='bool',),cdns=dict(type='bool',),financial_services=dict(type='bool',),social_network=dict(type='bool',),government=dict(type='bool',),web_advertisements=dict(type='bool',),fashion_and_beauty=dict(type='bool',),computer_and_internet_security=dict(type='bool',),name=dict(type='str',required=True,),real_estate=dict(type='bool',),user_tag=dict(type='str',),web_based_email=dict(type='bool',),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','uncategorized','real-estate','computer-and-internet-security','financial-services','business-and-economy','computer-and-internet-info','auctions','shopping','cult-and-occult','travel','drugs','adult-and-pornography','home-and-garden','military','social-network','dead-sites','stock-advice-and-tools','training-and-tools','dating','sex-education','religion','entertainment-and-arts','personal-sites-and-blogs','legal','local-information','streaming-media','job-search','gambling','translation','reference-and-research','shareware-and-freeware','peer-to-peer','marijuana','hacking','games','philosophy-and-politics','weapons','pay-to-surf','hunting-and-fishing','society','educational-institutions','online-greeting-cards','sports','swimsuits-and-intimate-apparel','questionable','kids','hate-and-racism','personal-storage','violence','keyloggers-and-monitoring','search-engines','internet-portals','web-advertisements','cheating','gross','web-based-email','malware-sites','phishing-and-other-fraud','proxy-avoid-and-anonymizers','spyware-and-adware','music','government','nudity','news-and-media','illegal','CDNs','internet-communications','bot-nets','abortion','health-and-medicine','confirmed-SPAM-sources','SPAM-URLs','unconfirmed-SPAM-sources','open-HTTP-proxies','dynamic-comment','parked-domains','alcohol-and-tobacco','private-IP-addresses','image-and-video-search','fashion-and-beauty','recreation-and-hobbies','motor-vehicles','web-hosting-sites','food-and-dining'])),recreation_and_hobbies=dict(type='bool',),business_and_economy=dict(type='bool',),confirmed_spam_sources=dict(type='bool',),philosophy_and_politics=dict(type='bool',),society=dict(type='bool',),motor_vehicles=dict(type='bool',),proxy_avoid_and_anonymizers=dict(type='bool',),gross=dict(type='bool',),legal=dict(type='bool',),bot_nets=dict(type='bool',),religion=dict(type='bool',),private_ip_addresses=dict(type='bool',),dating=dict(type='bool',),pay_to_surf=dict(type='bool',),reference_and_research=dict(type='bool',),keyloggers_and_monitoring=dict(type='bool',),kids=dict(type='bool',),online_greeting_cards=dict(type='bool',),violence=dict(type='bool',),games=dict(type='bool',),auctions=dict(type='bool',),military=dict(type='bool',),alcohol_and_tobacco=dict(type='bool',),stock_advice_and_tools=dict(type='bool',),news_and_media=dict(type='bool',),cult_and_occult=dict(type='bool',),food_and_dining=dict(type='bool',),cheating=dict(type='bool',),illegal=dict(type='bool',),local_information=dict(type='bool',),sports=dict(type='bool',),music=dict(type='bool',),shareware_and_freeware=dict(type='bool',),spyware_and_adware=dict(type='bool',),questionable=dict(type='bool',),shopping=dict(type='bool',),drugs=dict(type='bool',),web_hosting_sites=dict(type='bool',),malware_sites=dict(type='bool',),dynamic_comment=dict(type='bool',),translation=dict(type='bool',),job_search=dict(type='bool',),hunting_and_fishing=dict(type='bool',),search_engines=dict(type='bool',),educational_institutions=dict(type='bool',),internet_portals=dict(type='bool',),computer_and_internet_info=dict(type='bool',),abortion=dict(type='bool',),hacking=dict(type='bool',),adult_and_pornography=dict(type='bool',),phishing_and_other_fraud=dict(type='bool',),nudity=dict(type='bool',),health_and_medicine=dict(type='bool',),marijuana=dict(type='bool',),home_and_garden=dict(type='bool',),personal_storage=dict(type='bool',),sex_education=dict(type='bool',),swimsuits_and_intimate_apparel=dict(type='bool',),dead_sites=dict(type='bool',),travel=dict(type='bool',),hate_and_racism=dict(type='bool',),open_http_proxies=dict(type='bool',),internet_communications=dict(type='bool',),gambling=dict(type='bool',),peer_to_peer=dict(type='bool',),uncategorized=dict(type='bool',),personal_sites_and_blogs=dict(type='bool',),spam_urls=dict(type='bool',),unconfirmed_spam_sources=dict(type='bool',),image_and_video_search=dict(type='bool',),training_and_tools=dict(type='bool',),parked_domains=dict(type='bool',)),
+        port=dict(type='int',),
+        ssl_port=dict(type='int',),
+        uuid=dict(type='str',)
     ))
    
 
@@ -547,11 +573,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -633,10 +654,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -659,7 +683,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -673,7 +696,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -685,7 +707,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -700,7 +721,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("web-category", module)
     if module.check_mode:
@@ -785,8 +805,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

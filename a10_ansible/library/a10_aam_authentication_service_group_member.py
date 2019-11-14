@@ -55,22 +55,14 @@ options:
         description:
         - "Priority of Port in the Group"
         required: False
-    uuid:
+    name:
         description:
-        - "uuid of the object"
-        required: False
+        - "Member name"
+        required: True
     user_tag:
         description:
         - "Customized tag"
         required: False
-    sampling_enable:
-        description:
-        - "Field sampling_enable"
-        required: False
-        suboptions:
-            counters1:
-                description:
-                - "'all'= all; 'total_fwd_bytes'= Bytes processed in forward direction; 'total_fwd_pkts'= Packets processed in forward direction; 'total_rev_bytes'= Bytes processed in reverse direction; 'total_rev_pkts'= Packets processed in reverse direction; 'total_conn'= Total established connections; 'total_rev_pkts_inspected'= Total reverse packets inspected; 'total_rev_pkts_inspected_status_code_2xx'= Total reverse packets inspected status code 2xx; 'total_rev_pkts_inspected_status_code_non_5xx'= Total reverse packets inspected status code non 5xx; 'curr_req'= Current requests; 'total_req'= Total requests; 'total_req_succ'= Total requests successful; 'peak_conn'= peak_conn; 'response_time'= Response time; 'fastest_rsp_time'= Fastest response time; 'slowest_rsp_time'= Slowest response time; 'curr_ssl_conn'= Current SSL connections; 'total_ssl_conn'= Total SSL connections; 'curr_conn_overflow'= Current connection counter overflow count; "
     member_state:
         description:
         - "'enable'= Enable member service port; 'disable'= Disable member service port; "
@@ -79,10 +71,10 @@ options:
         description:
         - "Port number"
         required: True
-    name:
+    uuid:
         description:
-        - "Member name"
-        required: True
+        - "uuid of the object"
+        required: False
 
 
 """
@@ -97,7 +89,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["member_priority","member_state","name","port","sampling_enable","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["member_priority","member_state","name","port","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -127,12 +119,11 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         member_priority=dict(type='int',),
-        uuid=dict(type='str',),
+        name=dict(type='str',required=True,),
         user_tag=dict(type='str',),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_conn','total_rev_pkts_inspected','total_rev_pkts_inspected_status_code_2xx','total_rev_pkts_inspected_status_code_non_5xx','curr_req','total_req','total_req_succ','peak_conn','response_time','fastest_rsp_time','slowest_rsp_time','curr_ssl_conn','total_ssl_conn','curr_conn_overflow'])),
         member_state=dict(type='str',choices=['enable','disable']),
         port=dict(type='int',required=True,),
-        name=dict(type='str',required=True,)
+        uuid=dict(type='str',)
     ))
    
     # Parent keys
@@ -165,16 +156,6 @@ def existing_url(module):
     f_dict["service_group_name"] = module.params["service_group_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -255,12 +236,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -282,7 +257,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -296,7 +270,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -308,7 +281,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -323,7 +295,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("member", module)
     if module.check_mode:
@@ -406,10 +377,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

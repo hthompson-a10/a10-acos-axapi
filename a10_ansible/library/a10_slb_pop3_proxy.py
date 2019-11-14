@@ -12,7 +12,7 @@ REQUIRED_VALID = (True, "")
 DOCUMENTATION = """
 module: a10_slb_pop3_proxy
 description:
-    - Configure POP3 Proxy global
+    - Show POP3 Proxy global Statistics
 short_description: Configures A10 slb.pop3-proxy
 author: A10 Networks 2018 
 version_added: 2.4
@@ -56,6 +56,80 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'num'= Num; 'curr'= Current proxy conns; 'total'= Total proxy conns; 'svrsel_fail'= Server selection failure; 'no_route'= no route failure; 'snat_fail'= source nat failure; 'line_too_long'= line too long; 'line_mem_freed'= request line freed; 'invalid_start_line'= invalid start line; 'stls'= stls cmd; 'request_dont_care'= other cmd; 'unsupported_command'= Unsupported cmd; 'bad_sequence'= Bad Sequence; 'rsv_persist_conn_fail'= Serv Sel Persist fail; 'smp_v6_fail'= Serv Sel SMPv6 fail; 'smp_v4_fail'= Serv Sel SMPv4 fail; 'insert_tuple_fail'= Serv Sel insert tuple fail; 'cl_est_err'= Client EST state erro; 'ser_connecting_err'= Serv CTNG state error; 'server_response_err'= Serv RESP state error; 'cl_request_err'= Client RQ state error; 'request'= Total POP3 Request; 'control_to_ssl'= Control chn ssl; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            ser_connecting_err:
+                description:
+                - "Serv CTNG state error"
+            smp_v4_fail:
+                description:
+                - "Serv Sel SMPv4 fail"
+            curr:
+                description:
+                - "Current proxy conns"
+            server_response_err:
+                description:
+                - "Serv RESP state error"
+            num:
+                description:
+                - "Num"
+            no_route:
+                description:
+                - "no route failure"
+            total:
+                description:
+                - "Total proxy conns"
+            line_mem_freed:
+                description:
+                - "request line freed"
+            control_to_ssl:
+                description:
+                - "Control chn ssl"
+            request_dont_care:
+                description:
+                - "other cmd"
+            cl_est_err:
+                description:
+                - "Client EST state erro"
+            insert_tuple_fail:
+                description:
+                - "Serv Sel insert tuple fail"
+            rsv_persist_conn_fail:
+                description:
+                - "Serv Sel Persist fail"
+            invalid_start_line:
+                description:
+                - "invalid start line"
+            svrsel_fail:
+                description:
+                - "Server selection failure"
+            cl_request_err:
+                description:
+                - "Client RQ state error"
+            smp_v6_fail:
+                description:
+                - "Serv Sel SMPv6 fail"
+            snat_fail:
+                description:
+                - "source nat failure"
+            line_too_long:
+                description:
+                - "line too long"
+            request:
+                description:
+                - "Total POP3 Request"
+            bad_sequence:
+                description:
+                - "Bad Sequence"
+            unsupported_command:
+                description:
+                - "Unsupported cmd"
+            stls:
+                description:
+                - "stls cmd"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +148,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -104,6 +178,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','num','curr','total','svrsel_fail','no_route','snat_fail','line_too_long','line_mem_freed','invalid_start_line','stls','request_dont_care','unsupported_command','bad_sequence','rsv_persist_conn_fail','smp_v6_fail','smp_v4_fail','insert_tuple_fail','cl_est_err','ser_connecting_err','server_response_err','cl_request_err','request','control_to_ssl'])),
+        stats=dict(type='dict',ser_connecting_err=dict(type='str',),smp_v4_fail=dict(type='str',),curr=dict(type='str',),server_response_err=dict(type='str',),num=dict(type='str',),no_route=dict(type='str',),total=dict(type='str',),line_mem_freed=dict(type='str',),control_to_ssl=dict(type='str',),request_dont_care=dict(type='str',),cl_est_err=dict(type='str',),insert_tuple_fail=dict(type='str',),rsv_persist_conn_fail=dict(type='str',),invalid_start_line=dict(type='str',),svrsel_fail=dict(type='str',),cl_request_err=dict(type='str',),smp_v6_fail=dict(type='str',),snat_fail=dict(type='str',),line_too_long=dict(type='str',),request=dict(type='str',),bad_sequence=dict(type='str',),unsupported_command=dict(type='str',),stls=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +202,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +287,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +317,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +330,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +341,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +355,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("pop3-proxy", module)
     if module.check_mode:
@@ -368,8 +437,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

@@ -12,7 +12,7 @@ REQUIRED_VALID = (True, "")
 DOCUMENTATION = """
 module: a10_file_geo_location
 description:
-    - Display geo-location files
+    - Display waf files
 short_description: Configures A10 file.geo-location
 author: A10 Networks 2018 
 version_added: 2.4
@@ -48,33 +48,17 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    dst_file:
+    oper:
         description:
-        - "destination file name for copy and rename action"
+        - "Field oper"
         required: False
+        suboptions:
+            file_list:
+                description:
+                - "Field file_list"
     uuid:
         description:
         - "uuid of the object"
-        required: False
-    user_tag:
-        description:
-        - "Customized tag"
-        required: False
-    file:
-        description:
-        - "geo-location database local file name"
-        required: False
-    action:
-        description:
-        - "'create'= create; 'import'= import; 'export'= export; 'copy'= copy; 'rename'= rename; 'check'= check; 'replace'= replace; 'delete'= delete; "
-        required: False
-    file_handle:
-        description:
-        - "full path of the uploaded file"
-        required: False
-    size:
-        description:
-        - "geo-location database list file size in byte"
         required: False
 
 
@@ -90,7 +74,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["action","dst_file","file","file_handle","size","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["oper","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -119,13 +103,8 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        dst_file=dict(type='str',),
-        uuid=dict(type='str',),
-        user_tag=dict(type='str',),
-        file=dict(type='str',),
-        action=dict(type='str',choices=['create','import','export','copy','rename','check','replace','delete']),
-        file_handle=dict(type='str',),
-        size=dict(type='int',)
+        oper=dict(type='dict',file_list=dict(type='list',file=dict(type='str',))),
+        uuid=dict(type='str',)
     ))
    
 
@@ -153,11 +132,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -239,10 +213,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -250,25 +227,13 @@ def exists(module):
     except a10_ex.NotFound:
         return None
 
-def report_changes(module, result, existing_config, payload):
+def report_changes(module, result, existing_config):
     if existing_config:
-        for k, v in payload["geo-location"].items():
-            if v.lower() == "true":
-                v = 1
-            elif v.lower() == "false":
-                v = 0
-            if existing_config["geo-location"][k] != v:
-                if result["changed"] != True:
-                    result["changed"] = True
-                existing_config["geo-location"][k] = v
-        result.update(**existing_config)
-    else:
-        result.update(**payload)
+        result["changed"] = True
     return result
-
-def create(module, result, payload):
+def create(module, result):
     try:
-        post_result = module.client.post(new_url(module), payload)
+        post_result = module.client.post(new_url(module))
         if post_result:
             result.update(**post_result)
         result["changed"] = True
@@ -279,7 +244,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -291,10 +255,9 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
-def update(module, result, existing_config, payload):
+def update(module, result, existing_config):
     try:
-        post_result = module.client.post(existing_url(module), payload)
+        post_result = module.client.post(existing_url(module))
         if post_result:
             result.update(**post_result)
         if post_result == existing_config:
@@ -306,15 +269,13 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
-    payload = build_json("geo-location", module)
     if module.check_mode:
-        return report_changes(module, result, existing_config, payload)
-    elif not existing_config:
-        return create(module, result, payload)
+        return report_changes(module, result, existing_config)
+    if not existing_config:
+        return create(module, result)
     else:
-        return update(module, result, existing_config, payload)
+        return update(module, result, existing_config)
 
 def absent(module, result, existing_config):
     if module.check_mode:
@@ -327,9 +288,9 @@ def absent(module, result, existing_config):
     else:
         return delete(module, result)
 
-def replace(module, result, existing_config, payload):
+def replace(module, result, existing_config):
     try:
-        post_result = module.client.put(existing_url(module), payload)
+        post_result = module.client.put(existing_url(module))
         if post_result:
             result.update(**post_result)
         if post_result == existing_config:
@@ -391,8 +352,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

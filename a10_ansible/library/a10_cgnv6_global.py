@@ -56,6 +56,20 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'tcp-total-ports-allocated'= Total TCP ports allocated; 'udp-total-ports-allocated'= Total UDP ports allocated; 'icmp-total-ports-allocated'= Total ICMP ports allocated; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            udp_total_ports_allocated:
+                description:
+                - "Total UDP ports allocated"
+            icmp_total_ports_allocated:
+                description:
+                - "Total ICMP ports allocated"
+            tcp_total_ports_allocated:
+                description:
+                - "Total TCP ports allocated"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +88,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -104,6 +118,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','tcp-total-ports-allocated','udp-total-ports-allocated','icmp-total-ports-allocated'])),
+        stats=dict(type='dict',udp_total_ports_allocated=dict(type='str',),icmp_total_ports_allocated=dict(type='str',),tcp_total_ports_allocated=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +142,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +227,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +257,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +270,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +281,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +295,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("global", module)
     if module.check_mode:
@@ -368,8 +377,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

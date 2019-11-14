@@ -48,18 +48,6 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    retry:
-        description:
-        - "Maximum number of consecutive failed logon attempts (default 3)"
-        required: False
-    uuid:
-        description:
-        - "uuid of the object"
-        required: False
-    name:
-        description:
-        - "Specify HTTP-Authenticate logon name"
-        required: True
     sampling_enable:
         description:
         - "Field sampling_enable"
@@ -68,14 +56,35 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'spn_krb_request'= SPN Kerberos Request; 'spn_krb_success'= SPN Kerberos Success; 'spn_krb_faiure'= SPN Kerberos Failure; "
-    account_lock:
+    retry:
         description:
-        - "Lock the account when the failed logon attempts is exceeded"
+        - "Specify max. number of failure retry (1 ~ 32), default is 3"
         required: False
-    duration:
+    stats:
         description:
-        - "The time an account remains locked in seconds (default 1800)"
+        - "Field stats"
         required: False
+        suboptions:
+            spn_krb_success:
+                description:
+                - "SPN Kerberos Success"
+            spn_krb_request:
+                description:
+                - "SPN Kerberos Request"
+            name:
+                description:
+                - "Specify HTTP-Authenticate logon name"
+            spn_krb_faiure:
+                description:
+                - "SPN Kerberos Failure"
+    uuid:
+        description:
+        - "uuid of the object"
+        required: False
+    name:
+        description:
+        - "Specify HTTP-Authenticate logon name"
+        required: True
     auth_method:
         description:
         - "Field auth_method"
@@ -104,7 +113,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["account_lock","auth_method","duration","name","retry","sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["auth_method","name","retry","sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -133,12 +142,11 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','spn_krb_request','spn_krb_success','spn_krb_faiure'])),
         retry=dict(type='int',),
+        stats=dict(type='dict',spn_krb_success=dict(type='str',),spn_krb_request=dict(type='str',),name=dict(type='str',required=True,),spn_krb_faiure=dict(type='str',)),
         uuid=dict(type='str',),
         name=dict(type='str',required=True,),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','spn_krb_request','spn_krb_success','spn_krb_faiure'])),
-        account_lock=dict(type='bool',),
-        duration=dict(type='int',),
         auth_method=dict(type='dict',ntlm=dict(type='dict',ntlm_enable=dict(type='bool',)),negotiate=dict(type='dict',negotiate_enable=dict(type='bool',)),basic=dict(type='dict',new_pin_page=dict(type='str',),basic_enable=dict(type='bool',),challenge_page=dict(type='str',),next_token_variable=dict(type='str',),next_token_page=dict(type='str',),challenge_variable=dict(type='str',),basic_realm=dict(type='str',),new_pin_variable=dict(type='str',),challenge_response_form=dict(type='str',)))
     ))
    
@@ -164,11 +172,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -254,10 +257,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -281,7 +287,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -295,7 +300,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -307,7 +311,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -322,7 +325,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("instance", module)
     if module.check_mode:
@@ -405,8 +407,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

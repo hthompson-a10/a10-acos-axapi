@@ -68,14 +68,6 @@ options:
         description:
         - "'round-robin'= Round robin on server level; "
         required: False
-    sampling_enable:
-        description:
-        - "Field sampling_enable"
-        required: False
-        suboptions:
-            counters1:
-                description:
-                - "'all'= all; 'server_selection_fail_drop'= Drops due to Service selection failure; 'server_selection_fail_reset'= Resets sent out for Service selection failure; 'service_peak_conn'= Peak connection count for the Service Group; 'service_healthy_host'= Service Group healthy host count; 'service_unhealthy_host'= Service Group unhealthy host count; 'service_req_count'= Service Group request count; 'service_resp_count'= Service Group response count; 'service_resp_2xx'= Service Group response 2xx count; 'service_resp_3xx'= Service Group response 3xx count; 'service_resp_4xx'= Service Group response 4xx count; 'service_resp_5xx'= Service Group response 5xx count; 'service_curr_conn_overflow'= Current connection counter overflow count; "
     member_list:
         description:
         - "Field member_list"
@@ -84,24 +76,21 @@ options:
             member_priority:
                 description:
                 - "Priority of Port in the Group"
-            uuid:
+            name:
                 description:
-                - "uuid of the object"
+                - "Member name"
             user_tag:
                 description:
                 - "Customized tag"
-            sampling_enable:
-                description:
-                - "Field sampling_enable"
             member_state:
                 description:
                 - "'enable'= Enable member service port; 'disable'= Disable member service port; "
             port:
                 description:
                 - "Port number"
-            name:
+            uuid:
                 description:
-                - "Member name"
+                - "uuid of the object"
     health_check:
         description:
         - "Health Check (Monitor Name)"
@@ -124,7 +113,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["health_check","health_check_disable","lb_method","member_list","name","protocol","sampling_enable","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["health_check","health_check_disable","lb_method","member_list","name","protocol","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -158,8 +147,7 @@ def get_argspec():
         uuid=dict(type='str',),
         user_tag=dict(type='str',),
         lb_method=dict(type='str',choices=['round-robin']),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','server_selection_fail_drop','server_selection_fail_reset','service_peak_conn','service_healthy_host','service_unhealthy_host','service_req_count','service_resp_count','service_resp_2xx','service_resp_3xx','service_resp_4xx','service_resp_5xx','service_curr_conn_overflow'])),
-        member_list=dict(type='list',member_priority=dict(type='int',),uuid=dict(type='str',),user_tag=dict(type='str',),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_conn','total_rev_pkts_inspected','total_rev_pkts_inspected_status_code_2xx','total_rev_pkts_inspected_status_code_non_5xx','curr_req','total_req','total_req_succ','peak_conn','response_time','fastest_rsp_time','slowest_rsp_time','curr_ssl_conn','total_ssl_conn','curr_conn_overflow'])),member_state=dict(type='str',choices=['enable','disable']),port=dict(type='int',required=True,),name=dict(type='str',required=True,)),
+        member_list=dict(type='list',member_priority=dict(type='int',),name=dict(type='str',required=True,),user_tag=dict(type='str',),member_state=dict(type='str',choices=['enable','disable']),port=dict(type='int',required=True,),uuid=dict(type='str',)),
         health_check=dict(type='str',),
         name=dict(type='str',required=True,)
     ))
@@ -186,16 +174,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -276,12 +254,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -303,7 +275,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -317,7 +288,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -329,7 +299,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -344,7 +313,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("service-group", module)
     if module.check_mode:
@@ -427,10 +395,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

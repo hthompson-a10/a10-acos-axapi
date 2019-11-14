@@ -48,10 +48,6 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    uuid:
-        description:
-        - "uuid of the object"
-        required: False
     aaa_rule_list:
         description:
         - "Field aaa_rule_list"
@@ -75,9 +71,6 @@ options:
             user_tag:
                 description:
                 - "Customized tag"
-            user_agent:
-                description:
-                - "Field user_agent"
             host:
                 description:
                 - "Field host"
@@ -87,9 +80,9 @@ options:
             sampling_enable:
                 description:
                 - "Field sampling_enable"
-            auth_failure_bypass:
+            domain_name:
                 description:
-                - "Forward client’s request even though authentication has failed"
+                - "Specify domain name to bind to the AAA rule (ex= a10networks.com, www.a10networks.com)"
             authentication_template:
                 description:
                 - "Specify authentication template name to bind to the AAA rule"
@@ -99,9 +92,39 @@ options:
             port:
                 description:
                 - "Specify port number for aaa-rule, default is 0 for all port numbers"
-            domain_name:
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            aaa_rule_list:
                 description:
-                - "Specify domain name to bind to the AAA rule (ex= a10networks.com, www.a10networks.com)"
+                - "Field aaa_rule_list"
+            req_auth:
+                description:
+                - "Request Matching Authentication Template"
+            name:
+                description:
+                - "Specify AAA policy name"
+            req:
+                description:
+                - "Request"
+            req_allow:
+                description:
+                - "Request Allowed"
+            req_skip:
+                description:
+                - "Request Skipped"
+            error:
+                description:
+                - "Error"
+            req_reject:
+                description:
+                - "Request Rejected"
+    uuid:
+        description:
+        - "uuid of the object"
+        required: False
     sampling_enable:
         description:
         - "Field sampling_enable"
@@ -109,7 +132,7 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'req'= Request; 'req-reject'= Request Rejected; 'req-auth'= Request Matching Authentication Template; 'req-bypass'= Request Bypassed; 'req-skip'= Request Skipped; 'error'= Error; 'failure-bypass'= Auth Failure Bypass; "
+                - "'all'= all; 'req'= Request; 'req-reject'= Request Rejected; 'req-auth'= Request Matching Authentication Template; 'req-allow'= Request Allowed; 'req-skip'= Request Skipped; 'error'= Error; "
     user_tag:
         description:
         - "Customized tag"
@@ -132,7 +155,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["aaa_rule_list","name","sampling_enable","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["aaa_rule_list","name","sampling_enable","stats","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -161,9 +184,10 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        aaa_rule_list=dict(type='list',index=dict(type='int',required=True,),match_encoded_uri=dict(type='bool',),uuid=dict(type='str',),authorize_policy=dict(type='str',),uri=dict(type='list',match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with']),uri_str=dict(type='str',)),user_tag=dict(type='str',),host=dict(type='list',host_str=dict(type='str',),host_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),access_list=dict(type='dict',acl_name=dict(type='str',choices=['ip-name','ipv6-name']),acl_id=dict(type='int',),name=dict(type='str',)),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_count','hit_count'])),domain_name=dict(type='str',),authentication_template=dict(type='str',),action=dict(type='str',choices=['allow','deny']),port=dict(type='int',)),
+        stats=dict(type='dict',aaa_rule_list=dict(type='list',index=dict(type='int',required=True,),stats=dict(type='dict',total_count=dict(type='str',),hit_count=dict(type='str',))),req_auth=dict(type='str',),name=dict(type='str',required=True,),req=dict(type='str',),req_allow=dict(type='str',),req_skip=dict(type='str',),error=dict(type='str',),req_reject=dict(type='str',)),
         uuid=dict(type='str',),
-        aaa_rule_list=dict(type='list',index=dict(type='int',required=True,),match_encoded_uri=dict(type='bool',),uuid=dict(type='str',),authorize_policy=dict(type='str',),uri=dict(type='list',match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with']),uri_str=dict(type='str',)),user_tag=dict(type='str',),user_agent=dict(type='list',user_agent_str=dict(type='str',),user_agent_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),host=dict(type='list',host_str=dict(type='str',),host_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),access_list=dict(type='dict',acl_name=dict(type='str',choices=['ip-name','ipv6-name']),acl_id=dict(type='int',),name=dict(type='str',)),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_count','hit_deny','hit_auth','hit_bypass','failure_bypass'])),auth_failure_bypass=dict(type='bool',),authentication_template=dict(type='str',),action=dict(type='str',choices=['allow','deny']),port=dict(type='int',),domain_name=dict(type='str',)),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','req','req-reject','req-auth','req-bypass','req-skip','error','failure-bypass'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','req','req-reject','req-auth','req-allow','req-skip','error'])),
         user_tag=dict(type='str',),
         name=dict(type='str',required=True,)
     ))
@@ -190,11 +214,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -280,10 +299,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -307,7 +329,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -321,7 +342,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -333,7 +353,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -348,7 +367,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("aaa-policy", module)
     if module.check_mode:
@@ -431,8 +449,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

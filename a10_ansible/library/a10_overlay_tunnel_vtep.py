@@ -56,28 +56,26 @@ options:
         description:
         - "Customized tag"
         required: False
-    sampling_enable:
+    destination_ip_address_list:
         description:
-        - "Field sampling_enable"
+        - "Field destination_ip_address_list"
         required: False
         suboptions:
-            counters1:
-                description:
-                - "'all'= all; 'cfg_err_count'= Config errors; 'flooded_pkt_count'= Flooded packet count; 'encap_unresolved_count'= Encap unresolved failures; 'unknown_encap_rx_pkt'= Encap miss rx pkts; 'unknown_encap_tx_pkt'= Encap miss tx pkts; 'arp_req_sent'= Arp request sent; 'vtep_host_learned'= Hosts learned; 'vtep_host_learn_error'= Host learn error; 'invalid_lif_rx'= Invalid Lif pkts in; 'invalid_lif_tx'= Invalid Lif pkts out; 'unknown_vtep_tx'= Vtep unknown tx; 'unknown_vtep_rx'= Vtep Unkown rx; 'unhandled_pkt_rx'= Unhandled packets in; 'unhandled_pkt_tx'= Unhandled packets out; 'total_pkts_rx'= Total packets out; 'total_bytes_rx'= Total packet bytes in; 'unicast_pkt_rx'= Total unicast packets in; 'bcast_pkt_rx'= Total broadcast packets in; 'mcast_pkt_rx'= Total multicast packets in; 'dropped_pkt_rx'= Dropped received packets; 'encap_miss_pkts_rx'= Encap missed in received packets; 'bad_chksum_pks_rx'= Bad checksum in received packets; 'requeue_pkts_in'= Requeued packets in; 'pkts_out'= Packets out; 'total_bytes_tx'= Packet bytes out; 'unicast_pkt_tx'= Unicast packets out; 'bcast_pkt_tx'= Broadcast packets out; 'mcast_pkt_tx'= Multicast packets out; 'dropped_pkts_tx'= Dropped packets out; 'large_pkts_rx'= Too large packets in; 'dot1q_pkts_rx'= Dot1q packets in; 'frag_pkts_tx'= Frag packets out; 'reassembled_pkts_rx'= Reassembled packets in; 'bad_inner_ipv4_len_rx'= bad inner ipv4 packet len; 'bad_inner_ipv6_len_rx'= Bad inner ipv6 packet len; 'lif_un_init_rx'= Lif uninitialized packets in; "
-    source_ip_address:
-        description:
-        - "Field source_ip_address"
-        required: False
-        suboptions:
-            ip_address:
-                description:
-                - "Source Tunnel End Point IPv4 address"
             uuid:
                 description:
                 - "uuid of the object"
+            ip_address:
+                description:
+                - "IP Address of the remote VTEP"
             vni_list:
                 description:
                 - "Field vni_list"
+            user_tag:
+                description:
+                - "Customized tag"
+            encap:
+                description:
+                - "'nvgre'= Tunnel Encapsulation Type is NVGRE; 'vxlan'= Tunnel Encapsulation Type is VXLAN; "
     encap:
         description:
         - "'nvgre'= Tunnel Encapsulation Type is NVGRE; 'vxlan'= Tunnel Encapsulation Type is VXLAN; "
@@ -106,26 +104,20 @@ options:
         description:
         - "VTEP Identifier"
         required: True
-    destination_ip_address_list:
+    source_ip_address:
         description:
-        - "Field destination_ip_address_list"
+        - "Field source_ip_address"
         required: False
         suboptions:
+            ip_address:
+                description:
+                - "Source Tunnel End Point IPv4 address"
             uuid:
                 description:
                 - "uuid of the object"
-            ip_address:
-                description:
-                - "IP Address of the remote VTEP"
             vni_list:
                 description:
                 - "Field vni_list"
-            user_tag:
-                description:
-                - "Customized tag"
-            encap:
-                description:
-                - "'nvgre'= Tunnel Encapsulation Type is NVGRE; 'vxlan'= Tunnel Encapsulation Type is VXLAN; "
 
 
 """
@@ -140,7 +132,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["destination_ip_address_list","encap","host_list","id","sampling_enable","source_ip_address","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["destination_ip_address_list","encap","host_list","id","source_ip_address","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -171,12 +163,11 @@ def get_argspec():
     rv.update(dict(
         uuid=dict(type='str',),
         user_tag=dict(type='str',),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','cfg_err_count','flooded_pkt_count','encap_unresolved_count','unknown_encap_rx_pkt','unknown_encap_tx_pkt','arp_req_sent','vtep_host_learned','vtep_host_learn_error','invalid_lif_rx','invalid_lif_tx','unknown_vtep_tx','unknown_vtep_rx','unhandled_pkt_rx','unhandled_pkt_tx','total_pkts_rx','total_bytes_rx','unicast_pkt_rx','bcast_pkt_rx','mcast_pkt_rx','dropped_pkt_rx','encap_miss_pkts_rx','bad_chksum_pks_rx','requeue_pkts_in','pkts_out','total_bytes_tx','unicast_pkt_tx','bcast_pkt_tx','mcast_pkt_tx','dropped_pkts_tx','large_pkts_rx','dot1q_pkts_rx','frag_pkts_tx','reassembled_pkts_rx','bad_inner_ipv4_len_rx','bad_inner_ipv6_len_rx','lif_un_init_rx'])),
-        source_ip_address=dict(type='dict',ip_address=dict(type='str',),uuid=dict(type='str',),vni_list=dict(type='list',lif=dict(type='int',),partition=dict(type='str',),segment=dict(type='int',required=True,),gateway=dict(type='bool',),uuid=dict(type='str',))),
+        destination_ip_address_list=dict(type='list',uuid=dict(type='str',),ip_address=dict(type='str',required=True,),vni_list=dict(type='list',segment=dict(type='int',required=True,),uuid=dict(type='str',)),user_tag=dict(type='str',),encap=dict(type='str',choices=['nvgre','vxlan'])),
         encap=dict(type='str',choices=['nvgre','vxlan']),
         host_list=dict(type='list',destination_vtep=dict(type='str',required=True,),ip_addr=dict(type='str',required=True,),overlay_mac_addr=dict(type='str',required=True,),vni=dict(type='int',required=True,),uuid=dict(type='str',)),
         id=dict(type='int',required=True,),
-        destination_ip_address_list=dict(type='list',uuid=dict(type='str',),ip_address=dict(type='str',required=True,),vni_list=dict(type='list',segment=dict(type='int',required=True,),uuid=dict(type='str',)),user_tag=dict(type='str',),encap=dict(type='str',choices=['nvgre','vxlan']))
+        source_ip_address=dict(type='dict',ip_address=dict(type='str',),uuid=dict(type='str',),vni_list=dict(type='list',lif=dict(type='int',),partition=dict(type='str',),segment=dict(type='int',required=True,),gateway=dict(type='bool',),uuid=dict(type='str',)))
     ))
    
 
@@ -201,16 +192,6 @@ def existing_url(module):
     f_dict["id"] = module.params["id"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -291,12 +272,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -318,7 +293,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -332,7 +306,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -344,7 +317,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -359,7 +331,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("vtep", module)
     if module.check_mode:
@@ -442,10 +413,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

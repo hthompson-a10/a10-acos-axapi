@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: UTF-8 -*-
 
 # Copyright 2018 A10 Networks
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -35,9 +36,22 @@ options:
         description:
         - Password for AXAPI authentication
         required: True
-    partition:
+    a10_port:
+        description:
+        - Port for AXAPI authentication
+        required: True
+    a10_protocol:
+        description:
+        - Protocol for AXAPI authentication
+        required: True
+    a10_partition:
         description:
         - Destination/target partition for object/command
+        required: False
+    virtio:
+        description:
+        - "only for kvm/virtio"
+        required: False
     enable:
         description:
         - "Enable System Polling mode"
@@ -56,7 +70,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["enable",]
+AVAILABLE_PROPERTIES = ["enable","virtio",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -75,15 +89,17 @@ def get_default_argspec():
         a10_host=dict(type='str', required=True),
         a10_username=dict(type='str', required=True),
         a10_password=dict(type='str', required=True, no_log=True),
-        state=dict(type='str', default="present", choices=["present", "absent"]),
+        state=dict(type='str', default="present", choices=["present", "absent", "noop"]),
         a10_port=dict(type='int', required=True),
         a10_protocol=dict(type='str', choices=["http", "https"]),
-        partition=dict(type='str', required=False)
+        a10_partition=dict(type='dict', name=dict(type='str',), shared=dict(type='str',), required=False, ),
+        get_type=dict(type='str', choices=["single", "list", "oper", "stats"]),
     )
 
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        virtio=dict(type='bool',),
         enable=dict(type='bool',)
     ))
    
@@ -108,6 +124,10 @@ def existing_url(module):
 
     return url_base.format(**f_dict)
 
+def list_url(module):
+    """Return the URL for a list of resources"""
+    ret = existing_url(module)
+    return ret[0:ret.rfind('/')]
 
 def build_envelope(title, data):
     return {
@@ -155,7 +175,7 @@ def build_json(title, module):
 def validate(params):
     # Ensure that params contains all the keys.
     requires_one_of = sorted([])
-    present_keys = sorted([x for x in requires_one_of if params.get(x)])
+    present_keys = sorted([x for x in requires_one_of if x in params and params.get(x) is not None])
     
     errors = []
     marg = []
@@ -180,14 +200,31 @@ def validate(params):
 def get(module):
     return module.client.get(existing_url(module))
 
+def get_list(module):
+    return module.client.get(list_url(module))
+
 def exists(module):
     try:
         return get(module)
     except a10_ex.NotFound:
-        return False
+        return None
 
-def create(module, result):
-    payload = build_json("system-poll-mode", module)
+def report_changes(module, result, existing_config, payload):
+    if existing_config:
+        for k, v in payload["system-poll-mode"].items():
+            if v.lower() == "true":
+                v = 1
+            elif v.lower() == "false":
+                v = 0
+            if existing_config["system-poll-mode"][k] != v:
+                if result["changed"] != True:
+                    result["changed"] = True
+                existing_config["system-poll-mode"][k] = v
+        result.update(**existing_config)
+    else:
+        result.update(**payload)
+    return result
+def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
         if post_result:
@@ -200,7 +237,6 @@ def create(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -212,9 +248,7 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
-def update(module, result, existing_config):
-    payload = build_json("system-poll-mode", module)
+def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
         if post_result:
@@ -228,18 +262,27 @@ def update(module, result, existing_config):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
-    if not exists(module):
-        return create(module, result)
-    else:
-        return update(module, result, existing_config)
-
-def absent(module, result):
-    return delete(module, result)
-
-def replace(module, result, existing_config):
     payload = build_json("system-poll-mode", module)
+    if module.check_mode:
+        return report_changes(module, result, existing_config, payload)
+    elif not existing_config:
+        return create(module, result, payload)
+    else:
+        return update(module, result, existing_config, payload)
+
+def absent(module, result, existing_config):
+    if module.check_mode:
+        if existing_config:
+            result["changed"] = True
+            return result
+        else:
+            result["changed"] = False
+            return result
+    else:
+        return delete(module, result)
+
+def replace(module, result, existing_config, payload):
     try:
         post_result = module.client.put(existing_url(module), payload)
         if post_result:
@@ -260,7 +303,8 @@ def run_command(module):
     result = dict(
         changed=False,
         original_message="",
-        message=""
+        message="",
+        result={}
     )
 
     state = module.params["state"]
@@ -269,23 +313,23 @@ def run_command(module):
     a10_password = module.params["a10_password"]
     a10_port = module.params["a10_port"] 
     a10_protocol = module.params["a10_protocol"]
-    
-    partition = module.params["partition"]
+    a10_partition = module.params["a10_partition"]
 
     valid = True
 
     if state == 'present':
         valid, validation_errors = validate(module.params)
-        map(run_errors.append, validation_errors)
+        for ve in validation_errors:
+            run_errors.append(ve)
     
     if not valid:
-        result["messages"] = "Validation failure"
         err_msg = "\n".join(run_errors)
+        result["messages"] = "Validation failure: " + str(run_errors)
         module.fail_json(msg=err_msg, **result)
 
     module.client = client_factory(a10_host, a10_port, a10_protocol, a10_username, a10_password)
-    if partition:
-        module.client.activate_partition(partition)
+    if a10_partition:
+        module.client.activate_partition(a10_partition)
 
     existing_config = exists(module)
 
@@ -293,12 +337,17 @@ def run_command(module):
         result = present(module, result, existing_config)
         module.client.session.close()
     elif state == 'absent':
-        result = absent(module, result)
+        result = absent(module, result, existing_config)
         module.client.session.close()
+    elif state == 'noop':
+        if module.params.get("get_type") == "single":
+            result["result"] = get(module)
+        elif module.params.get("get_type") == "list":
+            result["result"] = get_list(module)
     return result
 
 def main():
-    module = AnsibleModule(argument_spec=get_argspec())
+    module = AnsibleModule(argument_spec=get_argspec(), supports_check_mode=True)
     result = run_command(module)
     module.exit_json(**result)
 

@@ -48,6 +48,14 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            partition_name:
+                description:
+                - "Object partition name"
     uuid:
         description:
         - "uuid of the object"
@@ -65,18 +73,15 @@ options:
         - "Field shared_vlan"
         required: False
         suboptions:
+            vrid:
+                description:
+                - "Specify VRRP-A vrid"
             mgmt_floating_ip_address:
                 description:
                 - "IPv4 Address for Shared VLAN Mgmt IP Address"
             allowable_ip_range:
                 description:
                 - "Field allowable_ip_range"
-            vrid:
-                description:
-                - "Specify VRRP-A vrid"
-            allowable_ipv6_range:
-                description:
-                - "Field allowable_ipv6_range"
             vlan:
                 description:
                 - "Field vlan"
@@ -116,7 +121,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["application_type","id","partition_name","shared_vlan","template","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["application_type","id","partition_name","shared_vlan","stats","template","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -145,10 +150,11 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        stats=dict(type='dict',partition_name=dict(type='str',required=True,)),
         uuid=dict(type='str',),
         user_tag=dict(type='str',),
         partition_name=dict(type='str',required=True,),
-        shared_vlan=dict(type='dict',mgmt_floating_ip_address=dict(type='str',),allowable_ip_range=dict(type='list',),vrid=dict(type='int',),allowable_ipv6_range=dict(type='list',),vlan=dict(type='int',),uuid=dict(type='str',)),
+        shared_vlan=dict(type='dict',vrid=dict(type='int',),mgmt_floating_ip_address=dict(type='str',),allowable_ip_range=dict(type='list',),vlan=dict(type='int',),uuid=dict(type='str',)),
         template=dict(type='dict',resource_accounting=dict(type='str',),uuid=dict(type='str',)),
         application_type=dict(type='str',choices=['adc','cgnv6']),
         id=dict(type='int',)
@@ -176,11 +182,6 @@ def existing_url(module):
     f_dict["partition-name"] = module.params["partition_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -266,10 +267,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -293,7 +297,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -307,7 +310,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -319,7 +321,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -334,7 +335,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("partition", module)
     if module.check_mode:
@@ -417,8 +417,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

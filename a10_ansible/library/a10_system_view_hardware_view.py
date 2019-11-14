@@ -48,6 +48,59 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            bios_version:
+                description:
+                - "Field bios_version"
+            cpu_cores:
+                description:
+                - "Field cpu_cores"
+            l23_asic:
+                description:
+                - "Field l23_asic"
+            bios_release_date:
+                description:
+                - "Field bios_release_date"
+            fpga_summary:
+                description:
+                - "Field fpga_summary"
+            memory:
+                description:
+                - "Field memory"
+            storage:
+                description:
+                - "Field storage"
+            compression_cards:
+                description:
+                - "Field compression_cards"
+            fpga_date:
+                description:
+                - "Field fpga_date"
+            ipmi:
+                description:
+                - "Field ipmi"
+            platform_description:
+                description:
+                - "Field platform_description"
+            ssl_cards:
+                description:
+                - "Field ssl_cards"
+            serial:
+                description:
+                - "Field serial"
+            cpu:
+                description:
+                - "Field cpu"
+            cpu_stepping:
+                description:
+                - "Field cpu_stepping"
+            ports:
+                description:
+                - "Field ports"
     uuid:
         description:
         - "uuid of the object"
@@ -66,7 +119,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["uuid",]
+AVAILABLE_PROPERTIES = ["oper","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -95,6 +148,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',bios_version=dict(type='str',),cpu_cores=dict(type='int',),l23_asic=dict(type='str',),bios_release_date=dict(type='str',),fpga_summary=dict(type='str',),memory=dict(type='str',),storage=dict(type='str',),compression_cards=dict(type='dict',aha363=dict(type='int',),unknown_compression=dict(type='int',),gzip_devices=dict(type='int',)),fpga_date=dict(type='str',),ipmi=dict(type='str',),platform_description=dict(type='str',),ssl_cards=dict(type='dict',unknown_ssl_cards=dict(type='int',),hsm=dict(type='int',),ssl_devices=dict(type='int',),nitroxpx=dict(type='int',),nitrox5=dict(type='int',),nitrox3=dict(type='int',),nitrox2=dict(type='int',),nitrox1=dict(type='int',)),serial=dict(type='str',),cpu=dict(type='str',),cpu_stepping=dict(type='int',),ports=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -123,11 +177,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -209,10 +258,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -224,7 +276,6 @@ def report_changes(module, result, existing_config):
     if existing_config:
         result["changed"] = True
     return result
-
 def create(module, result):
     try:
         post_result = module.client.post(new_url(module))
@@ -238,7 +289,6 @@ def create(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -250,7 +300,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config):
     try:
         post_result = module.client.post(existing_url(module))
@@ -265,7 +314,6 @@ def update(module, result, existing_config):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     if module.check_mode:
         return report_changes(module, result, existing_config)
@@ -349,8 +397,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

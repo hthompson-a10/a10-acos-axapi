@@ -48,35 +48,9 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    logon_page_cfg:
-        description:
-        - "Field logon_page_cfg"
-        required: False
-        suboptions:
-            action_url:
-                description:
-                - "Specify form submission action url"
-            username_variable:
-                description:
-                - "Specify username variable name in form submission"
-            login_failure_message:
-                description:
-                - "Specify login failure message shown in logon page (Specify error string, default is 'Invalid username or password. Please try again.')"
-            passcode_variable:
-                description:
-                - "Specify passcode variable name in form submission"
-            disable_change_password_link:
-                description:
-                - "Don't display change password link on logon page forcibly even backend authentication server supports it (LDAP or Kerberos)"
-            password_variable:
-                description:
-                - "Specify password variable name in form submission"
-            authz_failure_message:
-                description:
-                - "Specify authorization failure message shown in logon page (Specify error string, default is 'Authorization failed. Please contact your system administrator.')"
     retry:
         description:
-        - "Maximum number of consecutive failed logon attempts (default 3)"
+        - "Specify max. number of failure retry (Specify retry count (1 ~ 32), default is 3)"
         required: False
     name:
         description:
@@ -90,17 +64,6 @@ options:
         description:
         - "Specify challenge variable name in form submission"
         required: False
-    notify_cp_page_cfg:
-        description:
-        - "Field notify_cp_page_cfg"
-        required: False
-        suboptions:
-            notifychangepassword_change_url:
-                description:
-                - "Specify change password action url for notifychangepassword form"
-            notifychangepassword_continue_url:
-                description:
-                - "Specify continue action url for notifychangepassword form"
     new_pin_variable:
         description:
         - "Specify new-pin variable name in form submission"
@@ -125,9 +88,6 @@ options:
             next_token_page:
                 description:
                 - "Specify next token page name for RSA-RADIUS"
-            notifychangepasswordpage:
-                description:
-                - "Specify change password notification page name"
             failpage:
                 description:
                 - "Specify logon fail page name (portal fail page name)"
@@ -141,14 +101,29 @@ options:
         description:
         - "Customized tag"
         required: False
-    account_lock:
+    logon_page_cfg:
         description:
-        - "Lock the account when the failed logon attempts is exceeded"
+        - "Field logon_page_cfg"
         required: False
-    duration:
-        description:
-        - "The time an account remains locked in seconds (default 1800)"
-        required: False
+        suboptions:
+            action_url:
+                description:
+                - "Specify form submission action url"
+            username_variable:
+                description:
+                - "Specify username variable name in form submission"
+            login_failure_message:
+                description:
+                - "Specify login failure message shown in logon page (Specify error string, default is 'Invalid username or password. Please try again.')"
+            passcode_variable:
+                description:
+                - "Specify passcode variable name in form submission"
+            password_variable:
+                description:
+                - "Specify password variable name in form submission"
+            authz_failure_message:
+                description:
+                - "Specify authorization failure message shown in logon page (Specify error string, default is 'Authorization failed. Please contact your system administrator.')"
     cp_page_cfg:
         description:
         - "Field cp_page_cfg"
@@ -199,7 +174,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["account_lock","challenge_variable","cp_page_cfg","duration","logon_page_cfg","name","new_pin_variable","next_token_variable","notify_cp_page_cfg","portal","retry","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["challenge_variable","cp_page_cfg","logon_page_cfg","name","new_pin_variable","next_token_variable","portal","retry","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -228,17 +203,14 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        logon_page_cfg=dict(type='dict',action_url=dict(type='str',),username_variable=dict(type='str',),login_failure_message=dict(type='str',),passcode_variable=dict(type='str',),disable_change_password_link=dict(type='bool',),password_variable=dict(type='str',),authz_failure_message=dict(type='str',)),
         retry=dict(type='int',),
         name=dict(type='str',required=True,),
         next_token_variable=dict(type='str',),
         challenge_variable=dict(type='str',),
-        notify_cp_page_cfg=dict(type='dict',notifychangepassword_change_url=dict(type='str',),notifychangepassword_continue_url=dict(type='str',)),
         new_pin_variable=dict(type='str',),
-        portal=dict(type='dict',new_pin_page=dict(type='str',),challenge_page=dict(type='str',),portal_name=dict(type='str',),logon=dict(type='str',),next_token_page=dict(type='str',),notifychangepasswordpage=dict(type='str',),failpage=dict(type='str',),changepasswordpage=dict(type='str',),default_portal=dict(type='bool',)),
+        portal=dict(type='dict',new_pin_page=dict(type='str',),challenge_page=dict(type='str',),portal_name=dict(type='str',),logon=dict(type='str',),next_token_page=dict(type='str',),failpage=dict(type='str',),changepasswordpage=dict(type='str',),default_portal=dict(type='bool',)),
         user_tag=dict(type='str',),
-        account_lock=dict(type='bool',),
-        duration=dict(type='int',),
+        logon_page_cfg=dict(type='dict',action_url=dict(type='str',),username_variable=dict(type='str',),login_failure_message=dict(type='str',),passcode_variable=dict(type='str',),password_variable=dict(type='str',),authz_failure_message=dict(type='str',)),
         cp_page_cfg=dict(type='dict',cp_cfm_pwd_var=dict(type='str',),cp_new_pwd_var=dict(type='str',),changepassword_url=dict(type='str',),cp_cfm_pwd_enum=dict(type='str',choices=['changepassword-password-confirm-variable']),cp_new_pwd_enum=dict(type='str',choices=['changepassword-new-password-variable']),cp_old_pwd_enum=dict(type='str',choices=['changepassword-old-password-variable']),cp_user_var=dict(type='str',),cp_old_pwd_var=dict(type='str',),cp_user_enum=dict(type='str',choices=['changepassword-username-variable'])),
         uuid=dict(type='str',)
     ))
@@ -265,16 +237,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -355,12 +317,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -382,7 +338,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -396,7 +351,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -408,7 +362,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -423,7 +376,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("form-based", module)
     if module.check_mode:
@@ -506,10 +458,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

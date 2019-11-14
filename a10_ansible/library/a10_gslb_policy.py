@@ -48,6 +48,17 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            metric_list:
+                description:
+                - "Field metric_list"
+            name:
+                description:
+                - "Specify policy name"
     weighted_ip_enable:
         description:
         - "Enable Select Service-IP by weighted preference"
@@ -314,9 +325,6 @@ options:
             server_full_list:
                 description:
                 - "Append All A Records in Authoritative Section"
-            server_any_with_metric:
-                description:
-                - "Provide All Records with GSLB Metrics applied to A/AAAA Records"
             dns_auto_map:
                 description:
                 - "Automatically build DNS Infrastructure"
@@ -514,7 +522,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["active_rdt","active_servers_enable","active_servers_fail_break","admin_ip_enable","admin_ip_top_only","admin_preference","alias_admin_preference","amount_first","auto_map","bw_cost_enable","bw_cost_fail_break","capacity","connection_load","dns","edns","geo_location_list","geo_location_match","geographic","health_check","health_check_preference_enable","health_preference_top","ip_list","least_response","metric_fail_break","metric_force_check","metric_order","metric_type","name","num_session_enable","num_session_tolerance","ordered_ip_top_only","round_robin","user_tag","uuid","weighted_alias","weighted_ip_enable","weighted_ip_total_hits","weighted_site_enable","weighted_site_total_hits",]
+AVAILABLE_PROPERTIES = ["active_rdt","active_servers_enable","active_servers_fail_break","admin_ip_enable","admin_ip_top_only","admin_preference","alias_admin_preference","amount_first","auto_map","bw_cost_enable","bw_cost_fail_break","capacity","connection_load","dns","edns","geo_location_list","geo_location_match","geographic","health_check","health_check_preference_enable","health_preference_top","ip_list","least_response","metric_fail_break","metric_force_check","metric_order","metric_type","name","num_session_enable","num_session_tolerance","oper","ordered_ip_top_only","round_robin","user_tag","uuid","weighted_alias","weighted_ip_enable","weighted_ip_total_hits","weighted_site_enable","weighted_site_total_hits",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -543,6 +551,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',metric_list=dict(type='list',ntype=dict(type='str',),order=dict(type='int',)),name=dict(type='str',required=True,)),
         weighted_ip_enable=dict(type='bool',),
         alias_admin_preference=dict(type='bool',),
         admin_ip_top_only=dict(type='bool',),
@@ -560,7 +569,7 @@ def get_argspec():
         metric_type=dict(type='str',choices=['health-check','weighted-ip','weighted-site','capacity','active-servers','active-rdt','geographic','connection-load','num-session','admin-preference','bw-cost','least-response','admin-ip']),
         num_session_tolerance=dict(type='int',),
         name=dict(type='str',required=True,),
-        dns=dict(type='dict',server_mode_only=dict(type='bool',),external_soa=dict(type='bool',),server_sec=dict(type='bool',),sticky_ipv6_mask=dict(type='int',),sticky=dict(type='bool',),delegation=dict(type='bool',),active_only_fail_safe=dict(type='bool',),cname_detect=dict(type='bool',),ttl=dict(type='int',),dynamic_preference=dict(type='bool',),use_server_ttl=dict(type='bool',),server_ptr=dict(type='bool',),selected_only=dict(type='bool',),ip_replace=dict(type='bool',),dns_addition_mx=dict(type='bool',),backup_alias=dict(type='bool',),server_any=dict(type='bool',),hint=dict(type='str',choices=['none','answer','addition']),cache=dict(type='bool',),external_ip=dict(type='bool',),server_txt=dict(type='bool',),server_addition_mx=dict(type='bool',),aging_time=dict(type='int',),block_action=dict(type='bool',),template=dict(type='str',),ipv6=dict(type='list',dns_ipv6_mapping_type=dict(type='str',choices=['addition','answer','exclusive','replace']),dns_ipv6_option=dict(type='str',choices=['mix','smart','mapping'])),selected_only_value=dict(type='int',),geoloc_action=dict(type='bool',),server_ns=dict(type='bool',),action_type=dict(type='str',choices=['drop','reject','ignore']),server_naptr=dict(type='bool',),active_only=dict(type='bool',),block_value=dict(type='list',block_value=dict(type='int',)),server_srv=dict(type='bool',),server_auto_ptr=dict(type='bool',),server_cname=dict(type='bool',),server_authoritative=dict(type='bool',),server_full_list=dict(type='bool',),server_any_with_metric=dict(type='bool',),dns_auto_map=dict(type='bool',),block_type=dict(type='str',choices=['a','aaaa','ns','mx','srv','cname','ptr','soa','txt']),sticky_mask=dict(type='str',),geoloc_alias=dict(type='bool',),logging=dict(type='str',choices=['none','query','response','both']),backup_server=dict(type='bool',),sticky_aging_time=dict(type='int',),geoloc_policy=dict(type='bool',),uuid=dict(type='str',),server=dict(type='bool',),dynamic_weight=dict(type='bool',),server_ns_list=dict(type='bool',),server_auto_ns=dict(type='bool',),action=dict(type='bool',),proxy_block_port_range_list=dict(type='list',proxy_block_range_from=dict(type='int',),proxy_block_range_to=dict(type='int',)),server_mx=dict(type='bool',)),
+        dns=dict(type='dict',server_mode_only=dict(type='bool',),external_soa=dict(type='bool',),server_sec=dict(type='bool',),sticky_ipv6_mask=dict(type='int',),sticky=dict(type='bool',),delegation=dict(type='bool',),active_only_fail_safe=dict(type='bool',),cname_detect=dict(type='bool',),ttl=dict(type='int',),dynamic_preference=dict(type='bool',),use_server_ttl=dict(type='bool',),server_ptr=dict(type='bool',),selected_only=dict(type='bool',),ip_replace=dict(type='bool',),dns_addition_mx=dict(type='bool',),backup_alias=dict(type='bool',),server_any=dict(type='bool',),hint=dict(type='str',choices=['none','answer','addition']),cache=dict(type='bool',),external_ip=dict(type='bool',),server_txt=dict(type='bool',),server_addition_mx=dict(type='bool',),aging_time=dict(type='int',),block_action=dict(type='bool',),template=dict(type='str',),ipv6=dict(type='list',dns_ipv6_mapping_type=dict(type='str',choices=['addition','answer','exclusive','replace']),dns_ipv6_option=dict(type='str',choices=['mix','smart','mapping'])),selected_only_value=dict(type='int',),geoloc_action=dict(type='bool',),server_ns=dict(type='bool',),action_type=dict(type='str',choices=['drop','reject','ignore']),server_naptr=dict(type='bool',),active_only=dict(type='bool',),block_value=dict(type='list',block_value=dict(type='int',)),server_srv=dict(type='bool',),server_auto_ptr=dict(type='bool',),server_cname=dict(type='bool',),server_authoritative=dict(type='bool',),server_full_list=dict(type='bool',),dns_auto_map=dict(type='bool',),block_type=dict(type='str',choices=['a','aaaa','ns','mx','srv','cname','ptr','soa','txt']),sticky_mask=dict(type='str',),geoloc_alias=dict(type='bool',),logging=dict(type='str',choices=['none','query','response','both']),backup_server=dict(type='bool',),sticky_aging_time=dict(type='int',),geoloc_policy=dict(type='bool',),uuid=dict(type='str',),server=dict(type='bool',),dynamic_weight=dict(type='bool',),server_ns_list=dict(type='bool',),server_auto_ns=dict(type='bool',),action=dict(type='bool',),proxy_block_port_range_list=dict(type='list',proxy_block_range_from=dict(type='int',),proxy_block_range_to=dict(type='int',)),server_mx=dict(type='bool',)),
         weighted_ip_total_hits=dict(type='bool',),
         weighted_site_total_hits=dict(type='bool',),
         ip_list=dict(type='str',),
@@ -611,11 +620,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -697,10 +701,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -723,7 +730,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -737,7 +743,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -749,7 +754,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -764,7 +768,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("policy", module)
     if module.check_mode:
@@ -849,8 +852,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

@@ -48,22 +48,6 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    avp_string:
-        description:
-        - "pattern to be matched in the avp string name, max length 127 bytes"
-        required: False
-    terminate_on_cca_t:
-        description:
-        - "remove diameter session when receiving CCA-T message"
-        required: False
-    message_code_list:
-        description:
-        - "Field message_code_list"
-        required: False
-        suboptions:
-            message_code:
-                description:
-                - "Field message_code"
     avp_list:
         description:
         - "Field avp_list"
@@ -84,6 +68,10 @@ options:
             int64:
                 description:
                 - "64 bits integer"
+    customize_cea:
+        description:
+        - "customizing cea response"
+        required: False
     service_group_name:
         description:
         - "service group name, this is the service group that the message needs to be copied to"
@@ -92,77 +80,70 @@ options:
         description:
         - "uuid of the object"
         required: False
-    idle_timeout:
-        description:
-        - "user sesison idle timeout (in minutes, default is 5)"
-        required: False
-    customize_cea:
-        description:
-        - "customizing cea response"
-        required: False
-    product_name:
-        description:
-        - "product name avp"
-        required: False
-    dwr_up_retry:
-        description:
-        - "number of successful dwr health-check before declaring target up"
-        required: False
-    forward_unknown_session_id:
-        description:
-        - "Forward server message even it has unknown session id"
-        required: False
-    avp_code:
-        description:
-        - "avp code"
-        required: False
-    vendor_id:
-        description:
-        - "vendor-id avp (Vendor Id)"
-        required: False
-    session_age:
-        description:
-        - "user session age allowed (default 10), this is not idle-time (in minutes)"
-        required: False
-    load_balance_on_session_id:
-        description:
-        - "Load balance based on the session id"
-        required: False
-    name:
-        description:
-        - "diameter template Name"
-        required: True
     dwr_time:
         description:
         - "dwr health-check timer interval (in 100 milli second unit, default is 100, 0 means unset this option)"
+        required: False
+    avp_string:
+        description:
+        - "pattern to be matched in the avp string name, max length 127 bytes"
+        required: False
+    idle_timeout:
+        description:
+        - " user sesison idle timeout (in minutes, default is 5)"
         required: False
     user_tag:
         description:
         - "Customized tag"
         required: False
+    avp_code:
+        description:
+        - "avp code"
+        required: False
+    terminate_on_cca_t:
+        description:
+        - "remove diameter session when receiving CCA-T message"
+        required: False
+    message_code_list:
+        description:
+        - "Field message_code_list"
+        required: False
+        suboptions:
+            message_code:
+                description:
+                - "Field message_code"
     origin_realm:
         description:
         - "origin-realm name avp"
         required: False
     origin_host:
         description:
-        - "Field origin_host"
+        - "origin-host name avp"
         required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
-            origin_host_name:
-                description:
-                - "origin-host name avp"
+    dwr_up_retry:
+        description:
+        - "number of successful dwr health-check before declaring target up"
+        required: False
     multiple_origin_host:
         description:
         - "allowing multiple origin-host to a single server"
         required: False
-    forward_to_latest_server:
+    product_name:
         description:
-        - "Forward client message to the latest server that sends message with the same session id"
+        - "product name avp"
         required: False
+    session_age:
+        description:
+        - "user session age allowed (default 10), this is not idle-time (in minutes)"
+        required: False
+    vendor_id:
+        description:
+        - "vendor-id avp (Vendon Id)"
+        required: False
+    name:
+        description:
+        - "diameter template Name"
+        required: True
 
 
 """
@@ -177,7 +158,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["avp_code","avp_list","avp_string","customize_cea","dwr_time","dwr_up_retry","forward_to_latest_server","forward_unknown_session_id","idle_timeout","load_balance_on_session_id","message_code_list","multiple_origin_host","name","origin_host","origin_realm","product_name","service_group_name","session_age","terminate_on_cca_t","user_tag","uuid","vendor_id",]
+AVAILABLE_PROPERTIES = ["avp_code","avp_list","avp_string","customize_cea","dwr_time","dwr_up_retry","idle_timeout","message_code_list","multiple_origin_host","name","origin_host","origin_realm","product_name","service_group_name","session_age","terminate_on_cca_t","user_tag","uuid","vendor_id",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -206,28 +187,25 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        avp_string=dict(type='str',),
-        terminate_on_cca_t=dict(type='bool',),
-        message_code_list=dict(type='list',message_code=dict(type='int',)),
         avp_list=dict(type='list',int32=dict(type='int',),avp=dict(type='int',),mandatory=dict(type='bool',),string=dict(type='str',),int64=dict(type='int',)),
+        customize_cea=dict(type='bool',),
         service_group_name=dict(type='str',),
         uuid=dict(type='str',),
-        idle_timeout=dict(type='int',),
-        customize_cea=dict(type='bool',),
-        product_name=dict(type='str',),
-        dwr_up_retry=dict(type='int',),
-        forward_unknown_session_id=dict(type='bool',),
-        avp_code=dict(type='int',),
-        vendor_id=dict(type='int',),
-        session_age=dict(type='int',),
-        load_balance_on_session_id=dict(type='bool',),
-        name=dict(type='str',required=True,),
         dwr_time=dict(type='int',),
+        avp_string=dict(type='str',),
+        idle_timeout=dict(type='int',),
         user_tag=dict(type='str',),
+        avp_code=dict(type='int',),
+        terminate_on_cca_t=dict(type='bool',),
+        message_code_list=dict(type='list',message_code=dict(type='int',)),
         origin_realm=dict(type='str',),
-        origin_host=dict(type='dict',uuid=dict(type='str',),origin_host_name=dict(type='str',)),
+        origin_host=dict(type='str',),
+        dwr_up_retry=dict(type='int',),
         multiple_origin_host=dict(type='bool',),
-        forward_to_latest_server=dict(type='bool',)
+        product_name=dict(type='str',),
+        session_age=dict(type='int',),
+        vendor_id=dict(type='int',),
+        name=dict(type='str',required=True,)
     ))
    
 
@@ -252,16 +230,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -342,12 +310,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -369,7 +331,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -383,7 +344,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -395,7 +355,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -410,7 +369,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("diameter", module)
     if module.check_mode:
@@ -493,10 +451,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

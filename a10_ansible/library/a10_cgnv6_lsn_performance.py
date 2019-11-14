@@ -56,6 +56,38 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'data-sessions-current-epoch'= data-sessions-current-epoch; 'fullcone-created-current-epoch'= fullcone-created-current-epoch; 'user-quote-created-current-epoch'= user-quote-created-current-epoch; 'data-sessions-previous-epoch-first'= data-sessions-previous-epoch-first; 'fullcone-created-previous-epoch-first'= fullcone-created-previous-epoch-first; 'user-quote-created-previous-epoch-first'= user-quote-created-previous-epoch-first; 'data-sessions-previous-epoch-last'= data-sessions-previous-epoch-last; 'fullcone-created-previous-epoch-last'= fullcone-created-previous-epoch-last; 'user-quote-created-previous-epoch-last'= user-quote-created-previous-epoch-last; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            fullcone_created_previous_epoch_first:
+                description:
+                - "Field fullcone_created_previous_epoch_first"
+            fullcone_created_previous_epoch_last:
+                description:
+                - "Field fullcone_created_previous_epoch_last"
+            data_sessions_previous_epoch_first:
+                description:
+                - "Field data_sessions_previous_epoch_first"
+            user_quote_created_current_epoch:
+                description:
+                - "Field user_quote_created_current_epoch"
+            user_quote_created_previous_epoch_first:
+                description:
+                - "Field user_quote_created_previous_epoch_first"
+            data_sessions_previous_epoch_last:
+                description:
+                - "Field data_sessions_previous_epoch_last"
+            fullcone_created_current_epoch:
+                description:
+                - "Field fullcone_created_current_epoch"
+            user_quote_created_previous_epoch_last:
+                description:
+                - "Field user_quote_created_previous_epoch_last"
+            data_sessions_current_epoch:
+                description:
+                - "Field data_sessions_current_epoch"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +106,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -104,6 +136,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','data-sessions-current-epoch','fullcone-created-current-epoch','user-quote-created-current-epoch','data-sessions-previous-epoch-first','fullcone-created-previous-epoch-first','user-quote-created-previous-epoch-first','data-sessions-previous-epoch-last','fullcone-created-previous-epoch-last','user-quote-created-previous-epoch-last'])),
+        stats=dict(type='dict',fullcone_created_previous_epoch_first=dict(type='str',),fullcone_created_previous_epoch_last=dict(type='str',),data_sessions_previous_epoch_first=dict(type='str',),user_quote_created_current_epoch=dict(type='str',),user_quote_created_previous_epoch_first=dict(type='str',),data_sessions_previous_epoch_last=dict(type='str',),fullcone_created_current_epoch=dict(type='str',),user_quote_created_previous_epoch_last=dict(type='str',),data_sessions_current_epoch=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +160,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +245,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +275,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +288,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +299,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +313,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("performance", module)
     if module.check_mode:
@@ -368,8 +395,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

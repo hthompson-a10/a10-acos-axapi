@@ -70,32 +70,10 @@ options:
             uuid:
                 description:
                 - "uuid of the object"
-    response_rate_limiting:
+    default_policy:
         description:
-        - "Field response_rate_limiting"
+        - "'nocache'= Cache disable; 'cache'= Cache enable; "
         required: False
-        suboptions:
-            filter_response_rate:
-                description:
-                - "Maximum allowed request rate for the filter. This should match average traffic. (default 20 per two seconds)"
-            slip_rate:
-                description:
-                - "Every n'th response that would be rate-limited will be let through instead"
-            response_rate:
-                description:
-                - "Responses exceeding this rate within the window will be dropped (default 5 per second)"
-            window:
-                description:
-                - "Rate-Limiting Interval in Seconds (default is one)"
-            action:
-                description:
-                - "'log-only'= Only log rate-limiting, do not actually rate limit. Requires enable-log configuration; 'rate-limit'= Rate-Limit based on configuration (Default); 'whitelist'= Whitelist, disable rate-limiting; "
-            enable_log:
-                description:
-                - "Enable logging"
-            uuid:
-                description:
-                - "uuid of the object"
     drop:
         description:
         - "Drop the malformed query"
@@ -136,10 +114,6 @@ options:
         description:
         - "Define maximum cache size (Maximum cache entry per VIP)"
         required: False
-    default_policy:
-        description:
-        - "'nocache'= Cache disable; 'cache'= Cache enable; "
-        required: False
     max_cache_entry_size:
         description:
         - "Define maximum cache entry size (Maximum cache entry size per VIP)"
@@ -162,7 +136,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["class_list","default_policy","disable_dns_template","dnssec_service_group","drop","enable_cache_sharing","forward","max_cache_entry_size","max_cache_size","max_query_length","name","period","query_id_switch","redirect_to_tcp_port","response_rate_limiting","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["class_list","default_policy","disable_dns_template","dnssec_service_group","drop","enable_cache_sharing","forward","max_cache_entry_size","max_cache_size","max_query_length","name","period","query_id_switch","redirect_to_tcp_port","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -194,7 +168,7 @@ def get_argspec():
         dnssec_service_group=dict(type='str',),
         name=dict(type='str',required=True,),
         class_list=dict(type='dict',lid_list=dict(type='list',action_value=dict(type='str',choices=['dns-cache-disable','dns-cache-enable','forward']),log=dict(type='bool',),lidnum=dict(type='int',required=True,),over_limit_action=dict(type='bool',),per=dict(type='int',),lockout=dict(type='int',),user_tag=dict(type='str',),dns=dict(type='dict',cache_action=dict(type='str',choices=['cache-disable','cache-enable']),honor_server_response_ttl=dict(type='bool',),weight=dict(type='int',),ttl=dict(type='int',)),conn_rate_limit=dict(type='int',),log_interval=dict(type='int',),uuid=dict(type='str',)),name=dict(type='str',),uuid=dict(type='str',)),
-        response_rate_limiting=dict(type='dict',filter_response_rate=dict(type='int',),slip_rate=dict(type='int',),response_rate=dict(type='int',),window=dict(type='int',),action=dict(type='str',choices=['log-only','rate-limit','whitelist']),enable_log=dict(type='bool',),uuid=dict(type='str',)),
+        default_policy=dict(type='str',choices=['nocache','cache']),
         drop=dict(type='bool',),
         period=dict(type='int',),
         user_tag=dict(type='str',),
@@ -205,7 +179,6 @@ def get_argspec():
         disable_dns_template=dict(type='bool',),
         forward=dict(type='str',),
         max_cache_size=dict(type='int',),
-        default_policy=dict(type='str',choices=['nocache','cache']),
         max_cache_entry_size=dict(type='int',),
         uuid=dict(type='str',)
     ))
@@ -232,16 +205,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -322,12 +285,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -349,7 +306,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -363,7 +319,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -375,7 +330,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -390,7 +344,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("dns", module)
     if module.check_mode:
@@ -473,10 +426,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

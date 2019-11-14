@@ -67,7 +67,7 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'krb_send_req_success'= Kerberos Request; 'krb_get_resp_success'= Kerberos Response; 'krb_timeout_error'= Kerberos Timeout; 'krb_other_error'= Kerberos Other Error; 'krb_pw_expiry'= Kerberos password expiry; 'krb_pw_change_success'= Kerberos password change success; 'krb_pw_change_failure'= Kerberos password change failure; 'ntlm_proto_nego_success'= NTLM Protocol Negotiation Success; 'ntlm_proto_nego_failure'= NTLM Protocol Negotiation Failure; 'ntlm_session_setup_success'= NTLM Session Setup Success; 'ntlm_session_setup_failure'= NTLM Session Setup Failure; 'ntlm_prepare_req_success'= NTLM Prepare Request Success; 'ntlm_prepare_req_error'= NTLM Prepare Request Error; 'ntlm_auth_success'= NTLM Authentication Success; 'ntlm_auth_failure'= NTLM Authentication Failure; 'ntlm_timeout_error'= NTLM Timeout; 'ntlm_other_error'= NTLM Other Error; "
+                - "'all'= all; 'krb_send_req_success'= Kerberos Request; 'krb_get_resp_success'= Kerberos Response; 'krb_timeout_error'= Kerberos Timeout; 'krb_other_error'= Kerberos Other Error; 'ntlm_proto_nego_success'= NTLM Protocol Negotiation Success; 'ntlm_proto_nego_failure'= NTLM Protocol Negotiation Failure; 'ntlm_session_setup_success'= NTLM Session Setup Success; 'ntlm_session_setup_failure'= NTLM Session Setup Failure; 'ntlm_prepare_req_success'= NTLM Prepare Request Success; 'ntlm_prepare_req_error'= NTLM Prepare Request Error; 'ntlm_auth_success'= NTLM Authentication Success; 'ntlm_auth_failure'= NTLM Authentication Failure; 'ntlm_timeout_error'= NTLM Timeout; 'ntlm_other_error'= NTLM Other Error; "
     host:
         description:
         - "Field host"
@@ -99,7 +99,7 @@ options:
                 - "Disable configured NTLM port health check configuration"
             kerberos_port:
                 description:
-                - "Specify the Kerberos port, default is 88"
+                - "Specify the Kerbros port, default is 88"
             ntlm_version:
                 description:
                 - "Specify NTLM version, default is 2"
@@ -112,9 +112,56 @@ options:
             kport_hm:
                 description:
                 - "Check Kerberos port's health status"
-            kerberos_password_change_port:
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            krb_send_req_success:
                 description:
-                - "Specify the Kerbros password change port, default is 464"
+                - "Kerberos Request"
+            ntlm_auth_success:
+                description:
+                - "NTLM Authentication Success"
+            ntlm_other_error:
+                description:
+                - "NTLM Other Error"
+            ntlm_proto_nego_failure:
+                description:
+                - "NTLM Protocol Negotiation Failure"
+            ntlm_prepare_req_error:
+                description:
+                - "NTLM Prepare Request Error"
+            ntlm_auth_failure:
+                description:
+                - "NTLM Authentication Failure"
+            krb_timeout_error:
+                description:
+                - "Kerberos Timeout"
+            ntlm_session_setup_success:
+                description:
+                - "NTLM Session Setup Success"
+            krb_other_error:
+                description:
+                - "Kerberos Other Error"
+            ntlm_timeout_error:
+                description:
+                - "NTLM Timeout"
+            ntlm_session_setup_failure:
+                description:
+                - "NTLM Session Setup Failure"
+            ntlm_prepare_req_success:
+                description:
+                - "NTLM Prepare Request Success"
+            krb_get_resp_success:
+                description:
+                - "Kerberos Response"
+            ntlm_proto_nego_success:
+                description:
+                - "NTLM Protocol Negotiation Success"
+            name:
+                description:
+                - "Specify Windows authentication server name"
     health_check_disable:
         description:
         - "Disable configured health check configuration"
@@ -145,7 +192,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["auth_protocol","health_check","health_check_disable","health_check_string","host","name","realm","sampling_enable","support_apacheds_kdc","timeout","uuid",]
+AVAILABLE_PROPERTIES = ["auth_protocol","health_check","health_check_disable","health_check_string","host","name","realm","sampling_enable","stats","support_apacheds_kdc","timeout","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -177,10 +224,11 @@ def get_argspec():
         health_check_string=dict(type='str',),
         realm=dict(type='str',),
         name=dict(type='str',required=True,),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','krb_send_req_success','krb_get_resp_success','krb_timeout_error','krb_other_error','krb_pw_expiry','krb_pw_change_success','krb_pw_change_failure','ntlm_proto_nego_success','ntlm_proto_nego_failure','ntlm_session_setup_success','ntlm_session_setup_failure','ntlm_prepare_req_success','ntlm_prepare_req_error','ntlm_auth_success','ntlm_auth_failure','ntlm_timeout_error','ntlm_other_error'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','krb_send_req_success','krb_get_resp_success','krb_timeout_error','krb_other_error','ntlm_proto_nego_success','ntlm_proto_nego_failure','ntlm_session_setup_success','ntlm_session_setup_failure','ntlm_prepare_req_success','ntlm_prepare_req_error','ntlm_auth_success','ntlm_auth_failure','ntlm_timeout_error','ntlm_other_error'])),
         host=dict(type='dict',hostipv6=dict(type='str',),hostip=dict(type='str',)),
         timeout=dict(type='int',),
-        auth_protocol=dict(type='dict',ntlm_health_check=dict(type='str',),kport_hm_disable=dict(type='bool',),ntlm_health_check_disable=dict(type='bool',),kerberos_port=dict(type='int',),ntlm_version=dict(type='int',),kerberos_disable=dict(type='bool',),ntlm_disable=dict(type='bool',),kport_hm=dict(type='str',),kerberos_password_change_port=dict(type='int',)),
+        auth_protocol=dict(type='dict',ntlm_health_check=dict(type='str',),kport_hm_disable=dict(type='bool',),ntlm_health_check_disable=dict(type='bool',),kerberos_port=dict(type='int',),ntlm_version=dict(type='int',),kerberos_disable=dict(type='bool',),ntlm_disable=dict(type='bool',),kport_hm=dict(type='str',)),
+        stats=dict(type='dict',krb_send_req_success=dict(type='str',),ntlm_auth_success=dict(type='str',),ntlm_other_error=dict(type='str',),ntlm_proto_nego_failure=dict(type='str',),ntlm_prepare_req_error=dict(type='str',),ntlm_auth_failure=dict(type='str',),krb_timeout_error=dict(type='str',),ntlm_session_setup_success=dict(type='str',),krb_other_error=dict(type='str',),ntlm_timeout_error=dict(type='str',),ntlm_session_setup_failure=dict(type='str',),ntlm_prepare_req_success=dict(type='str',),krb_get_resp_success=dict(type='str',),ntlm_proto_nego_success=dict(type='str',),name=dict(type='str',required=True,)),
         health_check_disable=dict(type='bool',),
         support_apacheds_kdc=dict(type='bool',),
         health_check=dict(type='bool',),
@@ -209,11 +257,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -299,10 +342,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -326,7 +372,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -340,7 +385,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -352,7 +396,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -367,7 +410,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("instance", module)
     if module.check_mode:
@@ -450,8 +492,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

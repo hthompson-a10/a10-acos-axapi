@@ -55,9 +55,9 @@ options:
         description:
         - "Specify realm of Kerberos server"
         required: False
-    cert_key_shared:
+    text_regex:
         description:
-        - "Select shared partition"
+        - "Specify text expected  with Regex"
         required: False
     response_code_regex:
         description:
@@ -99,10 +99,6 @@ options:
         description:
         - "HTTPS type"
         required: False
-    text_regex:
-        description:
-        - "Specify text expected  with Regex"
-        required: False
     https_host:
         description:
         - "Specify 'Host=' header used in request (enclose IPv6 address in [])"
@@ -134,7 +130,7 @@ options:
         suboptions:
             https_kerberos_hostip:
                 description:
-                - "Kdc's hostname(length=1-31) or IP address"
+                - "Kdc's hostname or IP address"
             https_kerberos_port:
                 description:
                 - "Specify the kdc port"
@@ -202,7 +198,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["cert","cert_key_shared","disable_sslv2hello","https","https_encrypted","https_expect","https_host","https_kerberos_auth","https_kerberos_kdc","https_kerberos_realm","https_key_encrypted","https_maintenance_code","https_password","https_password_string","https_postdata","https_postfile","https_response_code","https_text","https_url","https_username","key","key_pass_phrase","key_phrase","post_path","post_type","response_code_regex","text_regex","url_path","url_type","uuid","web_port",]
+AVAILABLE_PROPERTIES = ["cert","disable_sslv2hello","https","https_encrypted","https_expect","https_host","https_kerberos_auth","https_kerberos_kdc","https_kerberos_realm","https_key_encrypted","https_maintenance_code","https_password","https_password_string","https_postdata","https_postfile","https_response_code","https_text","https_url","https_username","key","key_pass_phrase","key_phrase","post_path","post_type","response_code_regex","text_regex","url_path","url_type","uuid","web_port",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -232,7 +228,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         https_kerberos_realm=dict(type='str',),
-        cert_key_shared=dict(type='bool',),
+        text_regex=dict(type='str',),
         response_code_regex=dict(type='str',),
         uuid=dict(type='str',),
         post_type=dict(type='str',choices=['postdata','postfile']),
@@ -243,7 +239,6 @@ def get_argspec():
         https_key_encrypted=dict(type='str',),
         https_expect=dict(type='bool',),
         https=dict(type='bool',),
-        text_regex=dict(type='str',),
         https_host=dict(type='str',),
         key_pass_phrase=dict(type='bool',),
         https_encrypted=dict(type='str',),
@@ -290,16 +285,6 @@ def existing_url(module):
     f_dict["monitor_name"] = module.params["monitor_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -380,12 +365,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -407,7 +386,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -421,7 +399,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -433,7 +410,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -448,7 +424,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("https", module)
     if module.check_mode:
@@ -531,10 +506,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

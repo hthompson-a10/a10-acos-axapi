@@ -48,6 +48,29 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            hd_sec:
+                description:
+                - "Field hd_sec"
+            cf_default:
+                description:
+                - "Field cf_default"
+            hd_pri:
+                description:
+                - "Field hd_pri"
+            cf_pri:
+                description:
+                - "Field cf_pri"
+            cf_sec:
+                description:
+                - "Field cf_sec"
+            hd_default:
+                description:
+                - "Field hd_default"
     hd_cfg:
         description:
         - "Field hd_cfg"
@@ -91,7 +114,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["cf_cfg","hd_cfg","uuid",]
+AVAILABLE_PROPERTIES = ["cf_cfg","hd_cfg","oper","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -120,6 +143,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',hd_sec=dict(type='str',),cf_default=dict(type='str',),hd_pri=dict(type='str',),cf_pri=dict(type='str',),cf_sec=dict(type='str',),hd_default=dict(type='str',)),
         hd_cfg=dict(type='dict',pri=dict(type='bool',),sec=dict(type='bool',),hd=dict(type='bool',)),
         cf_cfg=dict(type='dict',cf_pri=dict(type='bool',),cf=dict(type='bool',)),
         uuid=dict(type='str',)
@@ -150,11 +174,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -236,10 +255,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -262,7 +284,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -276,7 +297,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -288,7 +308,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -303,7 +322,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("bootimage", module)
     if module.check_mode:
@@ -388,8 +406,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

@@ -55,7 +55,57 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'requests'= Total Authentication Request; 'responses'= Total Authentication Response; 'misses'= Total Authentication Request Missed; 'ocsp-stapling-requests-to-a10authd'= Total OCSP Stapling Request; 'ocsp-stapling-responses-from-a10authd'= Total OCSP Stapling Response; 'opened-socket'= Total AAM Socket Opened; 'open-socket-failed'= Total AAM Open Socket Failed; 'connect'= Total AAM Connection; 'connect-failed'= Total AAM Connect Failed; 'created-timer'= Total AAM Timer Created; 'create-timer-failed'= Total AAM Timer Creation Failed; 'total-request'= Total Request Received by A10 Auth Service; 'get-socket-option-failed'= Total AAM Get Socket Option Failed; 'aflex-authz-succ'= Total Authorization success number in aFleX; 'aflex-authz-fail'= Total Authorization failure number in aFleX; 'authn-success'= Total Authentication success number; 'authn-failure'= Total Authentication failure number; 'authz-success'= Total Authorization success number; 'authz-failure'= Total Authorization failure number; 'active-session'= Total Active Auth-Sessions; 'active-user'= Total Active Users; 'dns-resolve-failed'= Total AAM DNS resolve failed; "
+                - "'all'= all; 'requests'= Total Authentication Request; 'responses'= Total Authentication Response; 'misses'= Total Authentication Request Missed; 'ocsp-stapling-requests-to-a10authd'= Total OCSP Stapling Request; 'ocsp-stapling-responses-from-a10authd'= Total OCSP Stapling Response; 'opened-socket'= Total AAM Socket Opened; 'open-socket-failed'= Total AAM Open Socket Failed; 'connect'= Total AAM Connection; 'connect-failed'= Total AAM Connect Failed; 'created-timer'= Total AAM Timer Created; 'create-timer-failed'= Total AAM Timer Creation Failed; 'total-request'= Total Request Received by A10 Auth Service; 'get-socket-option-failed'= Total AAM Get Socket Option Failed; 'aflex-authz-succ'= Total Authorization success number in aFleX; 'aflex-authz-fail'= Total Authorization failure number in aFleX; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            ocsp_stapling_requests_to_a10authd:
+                description:
+                - "Total OCSP Stapling Request"
+            ocsp_stapling_responses_from_a10authd:
+                description:
+                - "Total OCSP Stapling Response"
+            responses:
+                description:
+                - "Total Authentication Response"
+            created_timer:
+                description:
+                - "Total AAM Timer Created"
+            open_socket_failed:
+                description:
+                - "Total AAM Open Socket Failed"
+            connect_failed:
+                description:
+                - "Total AAM Connect Failed"
+            misses:
+                description:
+                - "Total Authentication Request Missed"
+            connect:
+                description:
+                - "Total AAM Connection"
+            aflex_authz_succ:
+                description:
+                - "Total Authorization success number in aFleX"
+            opened_socket:
+                description:
+                - "Total AAM Socket Opened"
+            requests:
+                description:
+                - "Total Authentication Request"
+            total_request:
+                description:
+                - "Total Request Received by A10 Auth Service"
+            aflex_authz_fail:
+                description:
+                - "Total Authorization failure number in aFleX"
+            create_timer_failed:
+                description:
+                - "Total AAM Timer Creation Failed"
+            get_socket_option_failed:
+                description:
+                - "Total AAM Get Socket Option Failed"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +124,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -103,7 +153,8 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','requests','responses','misses','ocsp-stapling-requests-to-a10authd','ocsp-stapling-responses-from-a10authd','opened-socket','open-socket-failed','connect','connect-failed','created-timer','create-timer-failed','total-request','get-socket-option-failed','aflex-authz-succ','aflex-authz-fail','authn-success','authn-failure','authz-success','authz-failure','active-session','active-user','dns-resolve-failed'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','requests','responses','misses','ocsp-stapling-requests-to-a10authd','ocsp-stapling-responses-from-a10authd','opened-socket','open-socket-failed','connect','connect-failed','created-timer','create-timer-failed','total-request','get-socket-option-failed','aflex-authz-succ','aflex-authz-fail'])),
+        stats=dict(type='dict',ocsp_stapling_requests_to_a10authd=dict(type='str',),ocsp_stapling_responses_from_a10authd=dict(type='str',),responses=dict(type='str',),created_timer=dict(type='str',),open_socket_failed=dict(type='str',),connect_failed=dict(type='str',),misses=dict(type='str',),connect=dict(type='str',),aflex_authz_succ=dict(type='str',),opened_socket=dict(type='str',),requests=dict(type='str',),total_request=dict(type='str',),aflex_authz_fail=dict(type='str',),create_timer_failed=dict(type='str',),get_socket_option_failed=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +178,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +263,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +293,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +306,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +317,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +331,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("global", module)
     if module.check_mode:
@@ -368,8 +413,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

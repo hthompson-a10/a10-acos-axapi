@@ -48,42 +48,79 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            rule_stats:
+                description:
+                - "Field rule_stats"
+            name:
+                description:
+                - "Rule set name"
+            policy_deny:
+                description:
+                - "Field policy_deny"
+            policy_rule_count:
+                description:
+                - "Field policy_rule_count"
+            policy_reset:
+                description:
+                - "Field policy_reset"
+            rule_list:
+                description:
+                - "Field rule_list"
+            policy_unmatched_drop:
+                description:
+                - "Field policy_unmatched_drop"
+            policy_status:
+                description:
+                - "Field policy_status"
+            rules_by_zone:
+                description:
+                - "Field rules_by_zone"
+            policy_permit:
+                description:
+                - "Field policy_permit"
     remark:
         description:
         - "Rule set entry comment (Notes for this rule set)"
         required: False
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            reset:
+                description:
+                - "Reset counter"
+            deny:
+                description:
+                - "Denied counter"
+            name:
+                description:
+                - "Rule set name"
+            permit:
+                description:
+                - "Permitted counter"
+            unmatched_drops:
+                description:
+                - "Unmatched drops counter"
+            rules_by_zone:
+                description:
+                - "Field rules_by_zone"
+            rule_list:
+                description:
+                - "Field rule_list"
     name:
         description:
         - "Rule set name"
         required: True
-    app:
-        description:
-        - "Field app"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
-    track_app_rule_list:
-        description:
-        - "Field track_app_rule_list"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
     user_tag:
         description:
         - "Customized tag"
         required: False
-    application:
-        description:
-        - "Field application"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
     sampling_enable:
         description:
         - "Field sampling_enable"
@@ -92,14 +129,6 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'unmatched-drops'= Unmatched drops counter; 'permit'= Permitted counter; 'deny'= Denied counter; 'reset'= Reset counter; "
-    tag:
-        description:
-        - "Field tag"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
     rule_list:
         description:
         - "Field rule_list"
@@ -108,58 +137,34 @@ options:
             cgnv6_fixed_nat_log:
                 description:
                 - "Enable logging"
-            dst_geoloc_list_shared:
-                description:
-                - "Use Geolocation list from shared partition"
-            sampling_enable:
-                description:
-                - "Field sampling_enable"
             forward_listen_on_port:
                 description:
                 - "Listen on port"
-            reset_lidlog:
-                description:
-                - "Enable logging"
-            listen_on_port_lid:
-                description:
-                - "Apply a Template LID"
-            app_list:
-                description:
-                - "Field app_list"
-            src_threat_list:
-                description:
-                - "Bind threat-list for source IP based filtering"
             cgnv6_policy:
                 description:
                 - "'lsn-lid'= Apply specified CGNv6 LSN LID; 'fixed-nat'= Apply CGNv6 Fixed NAT; "
-            src_geoloc_name:
-                description:
-                - "Single geolocation name"
             cgnv6_log:
                 description:
                 - "Enable logging"
             forward_log:
                 description:
                 - "Enable logging"
-            lid:
+            cgnv6_lsn_log:
                 description:
-                - "Apply a Template LID"
+                - "Enable logging"
             listen_on_port:
                 description:
                 - "Listen on port"
             move_rule:
                 description:
                 - "Field move_rule"
-            log:
+            src_ipv6_any:
                 description:
-                - "Enable logging"
-            dst_geoloc_name:
-                description:
-                - "Single geolocation name"
+                - "'any'= Any IPv6 address; "
             idle_timeout:
                 description:
                 - "TCP/UDP idle-timeout"
-            listen_on_port_lidlog:
+            fwlog:
                 description:
                 - "Enable logging"
             src_zone_any:
@@ -168,15 +173,9 @@ options:
             ip_version:
                 description:
                 - "'v4'= IPv4 rule; 'v6'= IPv6 rule; "
-            application_any:
+            action:
                 description:
-                - "'any'= any; "
-            src_zone:
-                description:
-                - "Zone name"
-            src_geoloc_list_shared:
-                description:
-                - "Use Geolocation list from shared partition"
+                - "'permit'= permit; 'deny'= deny; 'reset'= reset; "
             policy:
                 description:
                 - "'cgnv6'= Apply CGNv6 policy; 'forward'= Forward packet; "
@@ -189,81 +188,51 @@ options:
             status:
                 description:
                 - "'enable'= Enable rule; 'disable'= Disable rule; "
-            lidlog:
-                description:
-                - "Enable logging"
             dst_ipv4_any:
                 description:
                 - "'any'= Any IPv4 address; "
-            cgnv6_lsn_lid:
+            src_zone:
                 description:
-                - "LSN LID"
-            src_geoloc_list:
-                description:
-                - "Geolocation name list"
+                - "Zone name"
             src_ipv4_any:
                 description:
                 - "'any'= Any IPv4 address; "
-            fwlog:
+            log:
                 description:
                 - "Enable logging"
             dst_zone:
                 description:
                 - "Zone name"
-            dst_class_list:
-                description:
-                - "Match destination IP against class-list"
-            uuid:
-                description:
-                - "uuid of the object"
-            dst_threat_list:
-                description:
-                - "Bind threat-list for destination IP based filtering"
-            remark:
-                description:
-                - "Rule entry comment (Notes for this rule)"
-            src_class_list:
-                description:
-                - "Match source IP against class-list"
-            name:
-                description:
-                - "Rule name"
-            src_ipv6_any:
-                description:
-                - "'any'= Any IPv6 address; "
-            reset_lid:
-                description:
-                - "Apply a Template LID"
-            dst_geoloc_list:
-                description:
-                - "Geolocation name list"
-            track_application:
-                description:
-                - "Enable application statistic"
-            user_tag:
-                description:
-                - "Customized tag"
-            cgnv6_lsn_log:
-                description:
-                - "Enable logging"
-            dst_ipv6_any:
-                description:
-                - "'any'= Any IPv6 address; "
             service_any:
                 description:
                 - "'any'= any; "
+            remark:
+                description:
+                - "Rule entry comment (Notes for this rule)"
+            name:
+                description:
+                - "Rule name"
+            cgnv6_lsn_lid:
+                description:
+                - "LSN LID"
+            uuid:
+                description:
+                - "uuid of the object"
+            user_tag:
+                description:
+                - "Customized tag"
+            dst_ipv6_any:
+                description:
+                - "'any'= Any IPv6 address; "
+            sampling_enable:
+                description:
+                - "Field sampling_enable"
             service_list:
                 description:
                 - "Field service_list"
-            dst_domain_list:
-                description:
-                - "Match destination IP against domain-list"
             dest_list:
                 description:
                 - "Field dest_list"
-            action:
-                description:
-                - "'permit'= permit; 'deny'= deny; 'reset'= reset; "
             fw_log:
                 description:
                 - "Enable logging"
@@ -300,7 +269,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["app","application","name","remark","rule_list","rules_by_zone","sampling_enable","session_statistic","tag","track_app_rule_list","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["name","oper","remark","rule_list","rules_by_zone","sampling_enable","session_statistic","stats","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -329,15 +298,13 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',rule_stats=dict(type='list',rule_hitcount=dict(type='int',),rule_action=dict(type='str',),rule_status=dict(type='str',),rule_name=dict(type='str',)),name=dict(type='str',required=True,),policy_deny=dict(type='int',),policy_rule_count=dict(type='int',),policy_reset=dict(type='int',),rule_list=dict(type='list',oper=dict(type='dict',status=dict(type='str',),denybytes=dict(type='int',),sessionother=dict(type='int',),activesessionother=dict(type='int',),activesessiontcp=dict(type='int',),permitbytes=dict(type='int',),sessiontcp=dict(type='int',),activesessionicmp=dict(type='int',),sessionicmp=dict(type='int',),activesessiontotal=dict(type='int',),hitcount=dict(type='int',),sessiontotal=dict(type='int',),totalbytes=dict(type='int',),action=dict(type='str',),resetbytes=dict(type='int',),sessionudp=dict(type='int',),activesessionudp=dict(type='int',)),name=dict(type='str',required=True,)),policy_unmatched_drop=dict(type='int',),policy_status=dict(type='str',),rules_by_zone=dict(type='dict',oper=dict(type='dict',group_list=dict(type='list',to=dict(type='str',),from=dict(type='str',),rule_list=dict(type='list',dest_list=dict(type='list',dest=dict(type='str',)),action=dict(type='str',),source_list=dict(type='list',source=dict(type='str',)),name=dict(type='str',),service_list=dict(type='list',service=dict(type='str',)))))),policy_permit=dict(type='int',)),
         remark=dict(type='str',),
+        stats=dict(type='dict',reset=dict(type='str',),deny=dict(type='str',),name=dict(type='str',required=True,),permit=dict(type='str',),unmatched_drops=dict(type='str',),rules_by_zone=dict(type='dict',stats=dict(type='dict',dummy=dict(type='str',))),rule_list=dict(type='list',stats=dict(type='dict',active_session_other=dict(type='str',),session_icmp=dict(type='str',),hit_count=dict(type='str',),active_session_tcp=dict(type='str',),session_other=dict(type='str',),active_session_icmp=dict(type='str',),permit_bytes=dict(type='str',),reset_bytes=dict(type='str',),session_tcp=dict(type='str',),session_udp=dict(type='str',),active_session_udp=dict(type='str',),deny_bytes=dict(type='str',)),name=dict(type='str',required=True,))),
         name=dict(type='str',required=True,),
-        app=dict(type='dict',uuid=dict(type='str',)),
-        track_app_rule_list=dict(type='dict',uuid=dict(type='str',)),
         user_tag=dict(type='str',),
-        application=dict(type='dict',uuid=dict(type='str',)),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','unmatched-drops','permit','deny','reset'])),
-        tag=dict(type='dict',uuid=dict(type='str',)),
-        rule_list=dict(type='list',cgnv6_fixed_nat_log=dict(type='bool',),dst_geoloc_list_shared=dict(type='bool',),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','hit-count','permit-bytes','deny-bytes','reset-bytes','permit-packets','deny-packets','reset-packets','active-session-tcp','active-session-udp','active-session-icmp','active-session-other','session-tcp','session-udp','session-icmp','session-other','active-session-sctp','session-sctp','hitcount-timestamp'])),forward_listen_on_port=dict(type='bool',),reset_lidlog=dict(type='bool',),listen_on_port_lid=dict(type='int',),app_list=dict(type='list',obj_grp_application=dict(type='str',),protocol=dict(type='str',),protocol_tag=dict(type='str',choices=['aaa','adult-content','advertising','analytics-and-statistics','anonymizers-and-proxies','audio-chat','basic','blog','cdn','chat','classified-ads','cloud-based-services','cryptocurrency','database','disposable-email','email','enterprise','file-management','file-transfer','forum','gaming','instant-messaging-and-multimedia-conferencing','internet-of-things','mobile','multimedia-streaming','networking','news-portal','peer-to-peer','remote-access','scada','social-networks','software-update','standards-based','transportation','video-chat','voip','vpn-tunnels','web','web-e-commerce','web-search-engines','web-websites','webmails','web-ext-adult','web-ext-auctions','web-ext-blogs','web-ext-business-and-economy','web-ext-cdns','web-ext-collaboration','web-ext-computer-and-internet-info','web-ext-computer-and-internet-security','web-ext-dating','web-ext-educational-institutions','web-ext-entertainment-and-arts','web-ext-fashion-and-beauty','web-ext-file-share','web-ext-financial-services','web-ext-gambling','web-ext-games','web-ext-government','web-ext-health-and-medicine','web-ext-individual-stock-advice-and-tools','web-ext-internet-portals','web-ext-job-search','web-ext-local-information','web-ext-malware','web-ext-motor-vehicles','web-ext-music','web-ext-news','web-ext-p2p','web-ext-parked-sites','web-ext-proxy-avoid-and-anonymizers','web-ext-real-estate','web-ext-reference-and-research','web-ext-search-engines','web-ext-shopping','web-ext-social-network','web-ext-society','web-ext-software','web-ext-sports','web-ext-streaming-media','web-ext-training-and-tools','web-ext-translation','web-ext-travel','web-ext-web-advertisements','web-ext-web-based-email','web-ext-web-hosting','web-ext-web-service'])),src_threat_list=dict(type='str',),cgnv6_policy=dict(type='str',choices=['lsn-lid','fixed-nat']),src_geoloc_name=dict(type='str',),cgnv6_log=dict(type='bool',),forward_log=dict(type='bool',),lid=dict(type='int',),listen_on_port=dict(type='bool',),move_rule=dict(type='dict',location=dict(type='str',choices=['top','before','after','bottom']),target_rule=dict(type='str',)),log=dict(type='bool',),dst_geoloc_name=dict(type='str',),idle_timeout=dict(type='int',),listen_on_port_lidlog=dict(type='bool',),src_zone_any=dict(type='str',choices=['any']),ip_version=dict(type='str',choices=['v4','v6']),application_any=dict(type='str',choices=['any']),src_zone=dict(type='str',),src_geoloc_list_shared=dict(type='bool',),policy=dict(type='str',choices=['cgnv6','forward']),source_list=dict(type='list',src_ipv6_subnet=dict(type='str',),src_obj_network=dict(type='str',),src_slb_server=dict(type='str',),src_obj_grp_network=dict(type='str',),src_ip_subnet=dict(type='str',)),dst_zone_any=dict(type='str',choices=['any']),status=dict(type='str',choices=['enable','disable']),lidlog=dict(type='bool',),dst_ipv4_any=dict(type='str',choices=['any']),cgnv6_lsn_lid=dict(type='int',),src_geoloc_list=dict(type='str',),src_ipv4_any=dict(type='str',choices=['any']),fwlog=dict(type='bool',),dst_zone=dict(type='str',),dst_class_list=dict(type='str',),uuid=dict(type='str',),dst_threat_list=dict(type='str',),remark=dict(type='str',),src_class_list=dict(type='str',),name=dict(type='str',required=True,),src_ipv6_any=dict(type='str',choices=['any']),reset_lid=dict(type='int',),dst_geoloc_list=dict(type='str',),track_application=dict(type='bool',),user_tag=dict(type='str',),cgnv6_lsn_log=dict(type='bool',),dst_ipv6_any=dict(type='str',choices=['any']),service_any=dict(type='str',choices=['any']),service_list=dict(type='list',gtp_template=dict(type='str',),icmp_type=dict(type='int',),range_dst_port=dict(type='int',),icmpv6_code=dict(type='int',),gt_src_port=dict(type='int',),lt_src_port=dict(type='int',),proto_id=dict(type='int',),lt_dst_port=dict(type='int',),alg=dict(type='str',choices=['FTP','TFTP','SIP','DNS','PPTP','RTSP']),obj_grp_service=dict(type='str',),icmpv6_type=dict(type='int',),icmp_code=dict(type='int',),range_src_port=dict(type='int',),eq_dst_port=dict(type='int',),sctp_template=dict(type='str',),icmp=dict(type='bool',),protocols=dict(type='str',choices=['tcp','udp','sctp']),gt_dst_port=dict(type='int',),port_num_end_src=dict(type='int',),special_v6_type=dict(type='str',choices=['any-type','dest-unreachable','echo-reply','echo-request','packet-too-big','param-prob','time-exceeded']),eq_src_port=dict(type='int',),special_v6_code=dict(type='str',choices=['any-code','addr-unreachable','admin-prohibited','no-route','not-neighbour','port-unreachable']),icmpv6=dict(type='bool',),port_num_end_dst=dict(type='int',),special_code=dict(type='str',choices=['any-code','frag-required','host-unreachable','network-unreachable','port-unreachable','proto-unreachable','route-failed']),special_type=dict(type='str',choices=['any-type','echo-reply','echo-request','info-reply','info-request','mask-reply','mask-request','parameter-problem','redirect','source-quench','time-exceeded','timestamp','timestamp-reply','dest-unreachable'])),dst_domain_list=dict(type='str',),dest_list=dict(type='list',dst_obj_network=dict(type='str',),dst_obj_grp_network=dict(type='str',),dst_slb_vserver=dict(type='str',),dst_ip_subnet=dict(type='str',),dst_ipv6_subnet=dict(type='str',),dst_slb_server=dict(type='str',)),action=dict(type='str',choices=['permit','deny','reset']),fw_log=dict(type='bool',)),
+        rule_list=dict(type='list',cgnv6_fixed_nat_log=dict(type='bool',),forward_listen_on_port=dict(type='bool',),cgnv6_policy=dict(type='str',choices=['lsn-lid','fixed-nat']),cgnv6_log=dict(type='bool',),forward_log=dict(type='bool',),cgnv6_lsn_log=dict(type='bool',),listen_on_port=dict(type='bool',),move_rule=dict(type='dict',location=dict(type='str',choices=['top','before','after','bottom']),target_rule=dict(type='str',)),src_ipv6_any=dict(type='str',choices=['any']),idle_timeout=dict(type='int',),fwlog=dict(type='bool',),src_zone_any=dict(type='str',choices=['any']),ip_version=dict(type='str',choices=['v4','v6']),action=dict(type='str',choices=['permit','deny','reset']),policy=dict(type='str',choices=['cgnv6','forward']),source_list=dict(type='list',src_ipv6_subnet=dict(type='str',),src_obj_network=dict(type='str',),src_slb_server=dict(type='str',),src_obj_grp_network=dict(type='str',),src_ip_subnet=dict(type='str',)),dst_zone_any=dict(type='str',choices=['any']),status=dict(type='str',choices=['enable','disable']),dst_ipv4_any=dict(type='str',choices=['any']),src_zone=dict(type='str',),src_ipv4_any=dict(type='str',choices=['any']),log=dict(type='bool',),dst_zone=dict(type='str',),service_any=dict(type='str',choices=['any']),remark=dict(type='str',),name=dict(type='str',required=True,),cgnv6_lsn_lid=dict(type='int',),uuid=dict(type='str',),user_tag=dict(type='str',),dst_ipv6_any=dict(type='str',choices=['any']),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','hit-count','permit-bytes','deny-bytes','reset-bytes','active-session-tcp','active-session-udp','active-session-icmp','active-session-other','session-tcp','session-udp','session-icmp','session-other'])),service_list=dict(type='list',icmp_type=dict(type='int',),range_dst_port=dict(type='int',),icmpv6_code=dict(type='int',),gt_src_port=dict(type='int',),lt_src_port=dict(type='int',),proto_id=dict(type='int',),lt_dst_port=dict(type='int',),alg=dict(type='str',choices=['FTP','TFTP','SIP','DNS','PPTP','RTSP']),obj_grp_service=dict(type='str',),icmpv6_type=dict(type='int',),icmp_code=dict(type='int',),range_src_port=dict(type='int',),eq_dst_port=dict(type='int',),icmp=dict(type='bool',),protocols=dict(type='str',choices=['tcp','udp']),gt_dst_port=dict(type='int',),port_num_end_src=dict(type='int',),special_v6_type=dict(type='str',choices=['any-type','dest-unreachable','echo-reply','echo-request','packet-too-big','param-prob','time-exceeded']),eq_src_port=dict(type='int',),special_v6_code=dict(type='str',choices=['any-code','addr-unreachable','admin-prohibited','no-route','not-neighbour','port-unreachable']),icmpv6=dict(type='bool',),port_num_end_dst=dict(type='int',),special_code=dict(type='str',choices=['any-code','frag-required','host-unreachable','network-unreachable','port-unreachable','proto-unreachable','route-failed']),special_type=dict(type='str',choices=['any-type','echo-reply','echo-request','info-reply','info-request','mask-reply','mask-request','parameter-problem','redirect','source-quench','time-exceeded','timestamp','timestamp-reply','dest-unreachable'])),dest_list=dict(type='list',dst_obj_network=dict(type='str',),dst_obj_grp_network=dict(type='str',),dst_slb_vserver=dict(type='str',),dst_ip_subnet=dict(type='str',),dst_ipv6_subnet=dict(type='str',),dst_slb_server=dict(type='str',)),fw_log=dict(type='bool',)),
         session_statistic=dict(type='str',choices=['enable','disable']),
         rules_by_zone=dict(type='dict',sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','dummy'])),uuid=dict(type='str',)),
         uuid=dict(type='str',)
@@ -456,9 +423,21 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
 
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -482,7 +461,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -496,7 +474,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -508,7 +485,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -523,7 +499,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("rule-set", module)
     if module.check_mode:

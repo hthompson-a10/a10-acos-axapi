@@ -12,7 +12,7 @@ REQUIRED_VALID = (True, "")
 DOCUMENTATION = """
 module: a10_slb_smpp
 description:
-    - Configure SMPP
+    - Show SMPP Statistics
 short_description: Configures A10 slb.smpp
 author: A10 Networks 2018 
 version_added: 2.4
@@ -56,6 +56,92 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'msg_proxy_current'= Curr SMPP Proxy; 'msg_proxy_total'= Total SMPP Proxy; 'msg_proxy_mem_allocd'= msg_proxy_mem_allocd; 'msg_proxy_mem_cached'= msg_proxy_mem_cached; 'msg_proxy_mem_freed'= msg_proxy_mem_freed; 'msg_proxy_client_recv'= Client message rcvd; 'msg_proxy_client_send_success'= Sent to server; 'msg_proxy_client_incomplete'= Incomplete; 'msg_proxy_client_drop'= AX responds directly; 'msg_proxy_client_connection'= Connecting server; 'msg_proxy_client_fail'= Number of SMPP messages received from client but failed to forward to server; 'msg_proxy_client_fail_parse'= msg_proxy_client_fail_parse; 'msg_proxy_client_fail_process'= msg_proxy_client_fail_process; 'msg_proxy_client_fail_snat'= msg_proxy_client_fail_snat; 'msg_proxy_client_exceed_tmp_buff'= msg_proxy_client_exceed_tmp_buff; 'msg_proxy_client_fail_send_pkt'= msg_proxy_client_fail_send_pkt; 'msg_proxy_client_fail_start_server_Conn'= msg_proxy_client_fail_start_server_Conn; 'msg_proxy_server_recv'= Server message rcvd; 'msg_proxy_server_send_success'= Sent to client; 'msg_proxy_server_incomplete'= Incomplete; 'msg_proxy_server_drop'= Number of the packet AX drop; 'msg_proxy_server_fail'= Number of SMPP messages received from server but failed to forward to client; 'msg_proxy_server_fail_parse'= msg_proxy_server_fail_parse; 'msg_proxy_server_fail_process'= msg_proxy_server_fail_process; 'msg_proxy_server_fail_selec_connt'= msg_proxy_server_fail_selec_connt; 'msg_proxy_server_fail_snat'= msg_proxy_server_fail_snat; 'msg_proxy_server_exceed_tmp_buff'= msg_proxy_server_exceed_tmp_buff; 'msg_proxy_server_fail_send_pkt'= msg_proxy_server_fail_send_pkt; 'msg_proxy_create_server_conn'= Server conn created; 'msg_proxy_start_server_conn'= Number of server connection created successfully; 'msg_proxy_fail_start_server_conn'= Number of server connection created failed; 'msg_proxy_server_conn_fail_snat'= msg_proxy_server_conn_fail_snat; 'msg_proxy_fail_construct_server_conn'= msg_proxy_fail_construct_server_conn; 'msg_proxy_fail_reserve_pconn'= msg_proxy_fail_reserve_pconn; 'msg_proxy_start_server_conn_failed'= msg_proxy_start_server_conn_failed; 'msg_proxy_server_conn_already_exists'= msg_proxy_server_conn_already_exists; 'msg_proxy_fail_insert_server_conn'= msg_proxy_fail_insert_server_conn; 'msg_proxy_parse_msg_fail'= msg_proxy_parse_msg_fail; 'msg_proxy_process_msg_fail'= msg_proxy_process_msg_fail; 'msg_proxy_no_vport'= msg_proxy_no_vport; 'msg_proxy_fail_select_server'= msg_proxy_fail_select_server; 'msg_proxy_fail_alloc_mem'= msg_proxy_fail_alloc_mem; 'msg_proxy_unexpected_err'= msg_proxy_unexpected_err; 'msg_proxy_l7_cpu_failed'= msg_proxy_l7_cpu_failed; 'msg_proxy_l4_to_l7'= msg_proxy_l4_to_l7; 'msg_proxy_l4_from_l7'= msg_proxy_l4_from_l7; 'msg_proxy_to_l4_send_pkt'= msg_proxy_to_l4_send_pkt; 'msg_proxy_l4_from_l4_send'= msg_proxy_l4_from_l4_send; 'msg_proxy_l7_to_L4'= msg_proxy_l7_to_L4; 'msg_proxy_mag_back'= msg_proxy_mag_back; 'msg_proxy_fail_dcmsg'= msg_proxy_fail_dcmsg; 'msg_proxy_deprecated_conn'= msg_proxy_deprecated_conn; 'msg_proxy_hold_msg'= msg_proxy_hold_msg; 'msg_proxy_split_pkt'= msg_proxy_split_pkt; 'msg_proxy_pipline_msg'= msg_proxy_pipline_msg; 'msg_proxy_client_reset'= msg_proxy_client_reset; 'msg_proxy_server_reset'= msg_proxy_server_reset; 'payload_allocd'= payload_allocd; 'payload_freed'= payload_freed; 'pkt_too_small'= pkt_too_small; 'invalid_seq'= invalid_seq; 'AX_response_directly'= Number of packet which AX responds directly; 'select_client_conn'= Client conn selection; 'select_client_by_req'= Select by request; 'select_client_from_list'= Select by roundbin; 'select_client_by_conn'= Select by conn; 'select_client_fail'= Select failed; 'select_server_conn'= Server conn selection; 'select_server_by_req'= Select by request; 'select_server_from_list'= Select by roundbin; 'select_server_by_conn'= Select server conn by client conn; 'select_server_fail'= Fail to select server conn; 'bind_conn'= bind_conn; 'unbind_conn'= unbind_conn; 'enquire_link_recv'= enquire_link_recv; 'enquire_link_resp_recv'= enquire_link_resp_recv; 'enquire_link_send'= enquire_link_send; 'enquire_link_resp_send'= enquire_link_resp_send; 'client_conn_put_in_list'= client_conn_put_in_list; 'client_conn_get_from_list'= client_conn_get_from_list; 'server_conn_put_in_list'= server_conn_put_in_list; 'server_conn_get_from_list'= server_conn_get_from_list; 'server_conn_fail_bind'= server_conn_fail_bind; 'single_msg'= single_msg; 'fail_bind_msg'= fail_bind_msg; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            select_client_conn:
+                description:
+                - "Client conn selection"
+            select_client_fail:
+                description:
+                - "Select failed"
+            msg_proxy_server_send_success:
+                description:
+                - "Sent to client"
+            select_client_by_conn:
+                description:
+                - "Select by conn"
+            AX_response_directly:
+                description:
+                - "Number of packet which AX responds directly"
+            select_client_by_req:
+                description:
+                - "Select by request"
+            select_server_by_req:
+                description:
+                - "Select by request"
+            select_server_by_conn:
+                description:
+                - "Select server conn by client conn"
+            msg_proxy_client_send_success:
+                description:
+                - "Sent to server"
+            msg_proxy_client_drop:
+                description:
+                - "AX responds directly"
+            msg_proxy_total:
+                description:
+                - "Total SMPP Proxy"
+            select_server_from_list:
+                description:
+                - "Select by roundbin"
+            msg_proxy_current:
+                description:
+                - "Curr SMPP Proxy"
+            msg_proxy_client_fail:
+                description:
+                - "Number of SMPP messages received from client but failed to forward to server"
+            msg_proxy_create_server_conn:
+                description:
+                - "Server conn created"
+            msg_proxy_server_incomplete:
+                description:
+                - "Incomplete"
+            msg_proxy_server_fail:
+                description:
+                - "Number of SMPP messages received from server but failed to forward to client"
+            select_client_from_list:
+                description:
+                - "Select by roundbin"
+            msg_proxy_client_incomplete:
+                description:
+                - "Incomplete"
+            msg_proxy_server_drop:
+                description:
+                - "Number of the packet AX drop"
+            select_server_fail:
+                description:
+                - "Fail to select server conn"
+            msg_proxy_start_server_conn:
+                description:
+                - "Number of server connection created successfully"
+            msg_proxy_fail_start_server_conn:
+                description:
+                - "Number of server connection created failed"
+            select_server_conn:
+                description:
+                - "Server conn selection"
+            msg_proxy_server_recv:
+                description:
+                - "Server message rcvd"
+            msg_proxy_client_connection:
+                description:
+                - "Connecting server"
+            msg_proxy_client_recv:
+                description:
+                - "Client message rcvd"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +160,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -104,6 +190,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','msg_proxy_current','msg_proxy_total','msg_proxy_mem_allocd','msg_proxy_mem_cached','msg_proxy_mem_freed','msg_proxy_client_recv','msg_proxy_client_send_success','msg_proxy_client_incomplete','msg_proxy_client_drop','msg_proxy_client_connection','msg_proxy_client_fail','msg_proxy_client_fail_parse','msg_proxy_client_fail_process','msg_proxy_client_fail_snat','msg_proxy_client_exceed_tmp_buff','msg_proxy_client_fail_send_pkt','msg_proxy_client_fail_start_server_Conn','msg_proxy_server_recv','msg_proxy_server_send_success','msg_proxy_server_incomplete','msg_proxy_server_drop','msg_proxy_server_fail','msg_proxy_server_fail_parse','msg_proxy_server_fail_process','msg_proxy_server_fail_selec_connt','msg_proxy_server_fail_snat','msg_proxy_server_exceed_tmp_buff','msg_proxy_server_fail_send_pkt','msg_proxy_create_server_conn','msg_proxy_start_server_conn','msg_proxy_fail_start_server_conn','msg_proxy_server_conn_fail_snat','msg_proxy_fail_construct_server_conn','msg_proxy_fail_reserve_pconn','msg_proxy_start_server_conn_failed','msg_proxy_server_conn_already_exists','msg_proxy_fail_insert_server_conn','msg_proxy_parse_msg_fail','msg_proxy_process_msg_fail','msg_proxy_no_vport','msg_proxy_fail_select_server','msg_proxy_fail_alloc_mem','msg_proxy_unexpected_err','msg_proxy_l7_cpu_failed','msg_proxy_l4_to_l7','msg_proxy_l4_from_l7','msg_proxy_to_l4_send_pkt','msg_proxy_l4_from_l4_send','msg_proxy_l7_to_L4','msg_proxy_mag_back','msg_proxy_fail_dcmsg','msg_proxy_deprecated_conn','msg_proxy_hold_msg','msg_proxy_split_pkt','msg_proxy_pipline_msg','msg_proxy_client_reset','msg_proxy_server_reset','payload_allocd','payload_freed','pkt_too_small','invalid_seq','AX_response_directly','select_client_conn','select_client_by_req','select_client_from_list','select_client_by_conn','select_client_fail','select_server_conn','select_server_by_req','select_server_from_list','select_server_by_conn','select_server_fail','bind_conn','unbind_conn','enquire_link_recv','enquire_link_resp_recv','enquire_link_send','enquire_link_resp_send','client_conn_put_in_list','client_conn_get_from_list','server_conn_put_in_list','server_conn_get_from_list','server_conn_fail_bind','single_msg','fail_bind_msg'])),
+        stats=dict(type='dict',select_client_conn=dict(type='str',),select_client_fail=dict(type='str',),msg_proxy_server_send_success=dict(type='str',),select_client_by_conn=dict(type='str',),AX_response_directly=dict(type='str',),select_client_by_req=dict(type='str',),select_server_by_req=dict(type='str',),select_server_by_conn=dict(type='str',),msg_proxy_client_send_success=dict(type='str',),msg_proxy_client_drop=dict(type='str',),msg_proxy_total=dict(type='str',),select_server_from_list=dict(type='str',),msg_proxy_current=dict(type='str',),msg_proxy_client_fail=dict(type='str',),msg_proxy_create_server_conn=dict(type='str',),msg_proxy_server_incomplete=dict(type='str',),msg_proxy_server_fail=dict(type='str',),select_client_from_list=dict(type='str',),msg_proxy_client_incomplete=dict(type='str',),msg_proxy_server_drop=dict(type='str',),select_server_fail=dict(type='str',),msg_proxy_start_server_conn=dict(type='str',),msg_proxy_fail_start_server_conn=dict(type='str',),select_server_conn=dict(type='str',),msg_proxy_server_recv=dict(type='str',),msg_proxy_client_connection=dict(type='str',),msg_proxy_client_recv=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +214,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +299,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +329,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +342,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +353,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +367,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("smpp", module)
     if module.check_mode:
@@ -368,8 +449,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

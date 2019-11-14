@@ -68,10 +68,6 @@ options:
         description:
         - "Enable SSL certificate expiring trap"
         required: False
-    system_threshold:
-        description:
-        - "Enable slb system threshold trap"
-        required: False
     server:
         description:
         - "Enable slb server create/delete trap"
@@ -106,7 +102,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["all","connection_resource_event","resource_usage_warning","server","server_port","ssl_cert_change","ssl_cert_expire","system_threshold","uuid","vip","vip_port",]
+AVAILABLE_PROPERTIES = ["all","connection_resource_event","resource_usage_warning","server","server_port","ssl_cert_change","ssl_cert_expire","uuid","vip","vip_port",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -140,7 +136,6 @@ def get_argspec():
         uuid=dict(type='str',),
         ssl_cert_change=dict(type='bool',),
         ssl_cert_expire=dict(type='bool',),
-        system_threshold=dict(type='bool',),
         server=dict(type='bool',),
         vip=dict(type='bool',),
         connection_resource_event=dict(type='bool',),
@@ -168,16 +163,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -258,12 +243,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -285,7 +264,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -299,7 +277,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -311,7 +288,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -326,7 +302,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("slb-change", module)
     if module.check_mode:
@@ -409,10 +384,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

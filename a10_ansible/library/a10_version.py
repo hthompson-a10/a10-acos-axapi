@@ -48,6 +48,65 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            firmware_version:
+                description:
+                - "Field firmware_version"
+            hw_code:
+                description:
+                - "Field hw_code"
+            hd_sec:
+                description:
+                - "Field hd_sec"
+            hd_pri:
+                description:
+                - "Field hd_pri"
+            copyright:
+                description:
+                - "Field copyright"
+            sw_version:
+                description:
+                - "Field sw_version"
+            boot_from:
+                description:
+                - "Field boot_from"
+            cf_pri:
+                description:
+                - "Field cf_pri"
+            axapi_version:
+                description:
+                - "Field axapi_version"
+            plat_features:
+                description:
+                - "Field plat_features"
+            cf_sec:
+                description:
+                - "Field cf_sec"
+            hw_platform:
+                description:
+                - "Field hw_platform"
+            serial_number:
+                description:
+                - "Field serial_number"
+            up_time:
+                description:
+                - "Field up_time"
+            current_time:
+                description:
+                - "Field current_time"
+            aflex_version:
+                description:
+                - "Field aflex_version"
+            virtualization_type:
+                description:
+                - "Field virtualization_type"
+            last_config_saved_time:
+                description:
+                - "Field last_config_saved_time"
     uuid:
         description:
         - "uuid of the object"
@@ -66,7 +125,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["uuid",]
+AVAILABLE_PROPERTIES = ["oper","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -95,6 +154,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',firmware_version=dict(type='str',),hw_code=dict(type='str',),hd_sec=dict(type='str',),hd_pri=dict(type='str',),copyright=dict(type='str',),sw_version=dict(type='str',),boot_from=dict(type='str',),cf_pri=dict(type='str',),axapi_version=dict(type='str',),plat_features=dict(type='str',),cf_sec=dict(type='str',),hw_platform=dict(type='str',),serial_number=dict(type='str',),up_time=dict(type='str',),current_time=dict(type='str',),aflex_version=dict(type='str',),virtualization_type=dict(type='str',),last_config_saved_time=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -123,11 +183,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -209,10 +264,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -224,7 +282,6 @@ def report_changes(module, result, existing_config):
     if existing_config:
         result["changed"] = True
     return result
-
 def create(module, result):
     try:
         post_result = module.client.post(new_url(module))
@@ -238,7 +295,6 @@ def create(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -250,7 +306,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config):
     try:
         post_result = module.client.post(existing_url(module))
@@ -265,7 +320,6 @@ def update(module, result, existing_config):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     if module.check_mode:
         return report_changes(module, result, existing_config)
@@ -349,8 +403,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

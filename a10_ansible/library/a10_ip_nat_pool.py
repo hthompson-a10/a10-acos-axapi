@@ -52,6 +52,26 @@ options:
         description:
         - "Use Interface IP"
         required: False
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            Failed:
+                description:
+                - "Field Failed"
+            Total_Used:
+                description:
+                - "Field Total_Used"
+            Total_Freed:
+                description:
+                - "Field Total_Freed"
+            Port_Usage:
+                description:
+                - "Field Port_Usage"
+            pool_name:
+                description:
+                - "Specify pool name or pool group"
     uuid:
         description:
         - "uuid of the object"
@@ -106,7 +126,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["end_address","ethernet","gateway","ip_rr","netmask","pool_name","scaleout_device_id","start_address","use_if_ip","uuid","vrid",]
+AVAILABLE_PROPERTIES = ["end_address","ethernet","gateway","ip_rr","netmask","pool_name","scaleout_device_id","start_address","stats","use_if_ip","uuid","vrid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -136,6 +156,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         use_if_ip=dict(type='bool',),
+        stats=dict(type='dict',Failed=dict(type='str',),Total_Used=dict(type='str',),Total_Freed=dict(type='str',),Port_Usage=dict(type='str',),pool_name=dict(type='str',required=True,)),
         uuid=dict(type='str',),
         start_address=dict(type='str',),
         vrid=dict(type='int',),
@@ -170,11 +191,6 @@ def existing_url(module):
     f_dict["pool-name"] = module.params["pool_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -260,10 +276,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -287,7 +306,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -301,7 +319,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -313,7 +330,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -328,7 +344,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("pool", module)
     if module.check_mode:
@@ -411,8 +426,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

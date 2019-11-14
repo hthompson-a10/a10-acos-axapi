@@ -12,7 +12,7 @@ REQUIRED_VALID = (True, "")
 DOCUMENTATION = """
 module: a10_slb_sport_rate_limit
 description:
-    - Configure source port rate-limit
+    - Show source port rate-limit statistics
 short_description: Configures A10 slb.sport-rate-limit
 author: A10 Networks 2018 
 version_added: 2.4
@@ -56,6 +56,32 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'alloc_sport'= Alloc'd src port entry; 'alloc_sportip'= Alloc'd src port-ip entry; 'freed_sport'= Freed src port entry; 'freed_sportip'= Freed src port-ip entry; 'total_drop'= Total rate exceed drop; 'total_reset'= Total rate exceed reset; 'total_log'= Total log sent; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            total_reset:
+                description:
+                - "Total rate exceed reset"
+            freed_sportip:
+                description:
+                - "Freed src port-ip entry"
+            freed_sport:
+                description:
+                - "Freed src port entry"
+            alloc_sportip:
+                description:
+                - "Alloc'd src port-ip entry"
+            total_drop:
+                description:
+                - "Total rate exceed drop"
+            alloc_sport:
+                description:
+                - "Alloc'd src port entry"
+            total_log:
+                description:
+                - "Total log sent"
     uuid:
         description:
         - "uuid of the object"
@@ -74,7 +100,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -104,6 +130,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','alloc_sport','alloc_sportip','freed_sport','freed_sportip','total_drop','total_reset','total_log'])),
+        stats=dict(type='dict',total_reset=dict(type='str',),freed_sportip=dict(type='str',),freed_sport=dict(type='str',),alloc_sportip=dict(type='str',),total_drop=dict(type='str',),alloc_sport=dict(type='str',),total_log=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -127,11 +154,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -217,10 +239,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -244,7 +269,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -258,7 +282,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -270,7 +293,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -285,7 +307,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("sport-rate-limit", module)
     if module.check_mode:
@@ -368,8 +389,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

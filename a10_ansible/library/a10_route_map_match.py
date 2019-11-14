@@ -62,9 +62,15 @@ options:
         - "Field extcommunity"
         required: False
         suboptions:
+            extcommunity_l_std_cfg:
+                description:
+                - "Field extcommunity_l_std_cfg"
             extcommunity_l_name:
                 description:
                 - "Field extcommunity_l_name"
+            extcommunity_l_ext_cfg:
+                description:
+                - "Field extcommunity_l_ext_cfg"
     origin:
         description:
         - "Field origin"
@@ -129,9 +135,15 @@ options:
         - "Field community"
         required: False
         suboptions:
+            l_std_cfg:
+                description:
+                - "Field l_std_cfg"
             name_cfg:
                 description:
                 - "Field name_cfg"
+            l_ext_cfg:
+                description:
+                - "Field l_ext_cfg"
     local_preference:
         description:
         - "Field local_preference"
@@ -175,9 +187,6 @@ options:
         - "Field interface"
         required: False
         suboptions:
-            tunnel:
-                description:
-                - "Tunnel interface (Tunnel interface number)"
             ethernet:
                 description:
                 - "Ethernet interface (Port number)"
@@ -190,17 +199,6 @@ options:
             trunk:
                 description:
                 - "Trunk Interface (Trunk interface number)"
-    scaleout:
-        description:
-        - "Field scaleout"
-        required: False
-        suboptions:
-            cluster_id:
-                description:
-                - "Scaleout Cluster-id"
-            operational_state:
-                description:
-                - "'up'= Scaleout is up and running; 'down'= Scaleout is down or disabled; "
 
 
 """
@@ -215,7 +213,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["as_path","community","extcommunity","group","interface","ip","ipv6","local_preference","metric","origin","route_type","scaleout","tag","uuid",]
+AVAILABLE_PROPERTIES = ["as_path","community","extcommunity","group","interface","ip","ipv6","local_preference","metric","origin","route_type","tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -244,20 +242,19 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        extcommunity=dict(type='dict',extcommunity_l_name=dict(type='dict',exact_match=dict(type='bool',),name=dict(type='str',))),
+        extcommunity=dict(type='dict',extcommunity_l_std_cfg=dict(type='dict',exact_match=dict(type='bool',),l_std=dict(type='int',)),extcommunity_l_name=dict(type='dict',exact_match=dict(type='bool',),name=dict(type='str',)),extcommunity_l_ext_cfg=dict(type='dict',exact_match=dict(type='bool',),l_ext=dict(type='int',))),
         origin=dict(type='dict',egp=dict(type='bool',),incomplete=dict(type='bool',),igp=dict(type='bool',)),
         group=dict(type='dict',group_id=dict(type='int',),ha_state=dict(type='str',choices=['active','standby'])),
         uuid=dict(type='str',),
         ip=dict(type='dict',peer=dict(type='dict',acl1=dict(type='int',),acl2=dict(type='int',),name=dict(type='str',)),next_hop=dict(type='dict',acl1=dict(type='int',),acl2=dict(type='int',),name=dict(type='str',),prefix_list_1=dict(type='dict',name=dict(type='str',))),address=dict(type='dict',acl1=dict(type='int',),acl2=dict(type='int',),prefix_list=dict(type='dict',name=dict(type='str',)),name=dict(type='str',))),
         metric=dict(type='dict',value=dict(type='int',)),
         as_path=dict(type='dict',name=dict(type='str',)),
-        community=dict(type='dict',name_cfg=dict(type='dict',exact_match=dict(type='bool',),name=dict(type='str',))),
+        community=dict(type='dict',l_std_cfg=dict(type='dict',exact_match=dict(type='bool',),l_std=dict(type='int',)),name_cfg=dict(type='dict',exact_match=dict(type='bool',),name=dict(type='str',)),l_ext_cfg=dict(type='dict',exact_match=dict(type='bool',),l_ext=dict(type='int',))),
         local_preference=dict(type='dict',val=dict(type='int',)),
         route_type=dict(type='dict',external=dict(type='dict',value=dict(type='str',choices=['type-1','type-2']))),
         tag=dict(type='dict',value=dict(type='int',)),
         ipv6=dict(type='dict',next_hop_1=dict(type='dict',prefix_list_name=dict(type='str',),v6_addr=dict(type='str',),next_hop_acl_name=dict(type='str',)),peer_1=dict(type='dict',acl1=dict(type='int',),acl2=dict(type='int',),name=dict(type='str',)),address_1=dict(type='dict',name=dict(type='str',),prefix_list_2=dict(type='dict',name=dict(type='str',)))),
-        interface=dict(type='dict',tunnel=dict(type='str',),ethernet=dict(type='str',),loopback=dict(type='int',),ve=dict(type='int',),trunk=dict(type='int',)),
-        scaleout=dict(type='dict',cluster_id=dict(type='int',),operational_state=dict(type='str',choices=['up','down']))
+        interface=dict(type='dict',ethernet=dict(type='str',),loopback=dict(type='int',),ve=dict(type='int',),trunk=dict(type='int',))
     ))
    
     # Parent keys
@@ -292,16 +289,6 @@ def existing_url(module):
     f_dict["route_map_tag"] = module.params["route_map_tag"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -382,12 +369,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -409,7 +390,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -423,7 +403,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -435,7 +414,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -450,7 +428,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("match", module)
     if module.check_mode:
@@ -533,10 +510,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

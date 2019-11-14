@@ -59,6 +59,20 @@ options:
         description:
         - "Enable URL decoding for URI matching"
         required: False
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            total_count:
+                description:
+                - "Field total_count"
+            hit_count:
+                description:
+                - "Field hit_count"
+            index:
+                description:
+                - "Specify AAA rule index"
     uuid:
         description:
         - "uuid of the object"
@@ -82,17 +96,6 @@ options:
         description:
         - "Customized tag"
         required: False
-    user_agent:
-        description:
-        - "Field user_agent"
-        required: False
-        suboptions:
-            user_agent_str:
-                description:
-                - "Specify request User-Agent string"
-            user_agent_match_type:
-                description:
-                - "'contains'= Match request User-Agent header if it contains specified string; 'ends-with'= Match request User-Agent header if it ends with specified string; 'equals'= Match request User-Agent header if it equals specified string; 'starts-with'= Match request User-Agent header if it starts with specified string; "
     host:
         description:
         - "Field host"
@@ -125,10 +128,10 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'total_count'= total_count; 'hit_deny'= hit_deny; 'hit_auth'= hit_auth; 'hit_bypass'= hit_bypass; 'failure_bypass'= failure_bypass; "
-    auth_failure_bypass:
+                - "'all'= all; 'total_count'= total_count; 'hit_count'= hit_count; "
+    domain_name:
         description:
-        - "Forward client’s request even though authentication has failed"
+        - "Specify domain name to bind to the AAA rule (ex= a10networks.com, www.a10networks.com)"
         required: False
     authentication_template:
         description:
@@ -141,10 +144,6 @@ options:
     port:
         description:
         - "Specify port number for aaa-rule, default is 0 for all port numbers"
-        required: False
-    domain_name:
-        description:
-        - "Specify domain name to bind to the AAA rule (ex= a10networks.com, www.a10networks.com)"
         required: False
 
 
@@ -160,7 +159,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["access_list","action","auth_failure_bypass","authentication_template","authorize_policy","domain_name","host","index","match_encoded_uri","port","sampling_enable","uri","user_agent","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["access_list","action","authentication_template","authorize_policy","domain_name","host","index","match_encoded_uri","port","sampling_enable","stats","uri","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -191,19 +190,18 @@ def get_argspec():
     rv.update(dict(
         index=dict(type='int',required=True,),
         match_encoded_uri=dict(type='bool',),
+        stats=dict(type='dict',total_count=dict(type='str',),hit_count=dict(type='str',),index=dict(type='int',required=True,)),
         uuid=dict(type='str',),
         authorize_policy=dict(type='str',),
         uri=dict(type='list',match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with']),uri_str=dict(type='str',)),
         user_tag=dict(type='str',),
-        user_agent=dict(type='list',user_agent_str=dict(type='str',),user_agent_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),
         host=dict(type='list',host_str=dict(type='str',),host_match_type=dict(type='str',choices=['contains','ends-with','equals','starts-with'])),
         access_list=dict(type='dict',acl_name=dict(type='str',choices=['ip-name','ipv6-name']),acl_id=dict(type='int',),name=dict(type='str',)),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_count','hit_deny','hit_auth','hit_bypass','failure_bypass'])),
-        auth_failure_bypass=dict(type='bool',),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','total_count','hit_count'])),
+        domain_name=dict(type='str',),
         authentication_template=dict(type='str',),
         action=dict(type='str',choices=['allow','deny']),
-        port=dict(type='int',),
-        domain_name=dict(type='str',)
+        port=dict(type='int',)
     ))
    
     # Parent keys
@@ -234,11 +232,6 @@ def existing_url(module):
     f_dict["aaa_policy_name"] = module.params["aaa_policy_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -324,10 +317,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -351,7 +347,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -365,7 +360,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -377,7 +371,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -392,7 +385,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("aaa-rule", module)
     if module.check_mode:
@@ -475,8 +467,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

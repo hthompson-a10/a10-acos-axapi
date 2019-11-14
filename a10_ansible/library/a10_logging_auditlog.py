@@ -48,17 +48,9 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    uuid:
-        description:
-        - "uuid of the object"
-        required: False
     audit_facility:
         description:
         - "'local0'= Local use; 'local1'= Local use; 'local2'= Local use; 'local3'= Local use; 'local4'= Local use; 'local5'= Local use; 'local6'= Local use; 'local7'= Local use;  (Configure the facility of auditlog)"
-        required: False
-    partition_name:
-        description:
-        - "Select partition name for logging"
         required: False
     host6:
         description:
@@ -68,13 +60,13 @@ options:
         description:
         - "Configure the auditlog host"
         required: False
-    shared:
+    uuid:
         description:
-        - "Select shared partition"
+        - "uuid of the object"
         required: False
     port:
         description:
-        - "Set remote audit log port number(Default 514)"
+        - "Set remote audit log port number"
         required: False
 
 
@@ -90,7 +82,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["audit_facility","host4","host6","partition_name","port","shared","uuid",]
+AVAILABLE_PROPERTIES = ["audit_facility","host4","host6","port","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -119,12 +111,10 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        uuid=dict(type='str',),
         audit_facility=dict(type='str',choices=['local0','local1','local2','local3','local4','local5','local6','local7']),
-        partition_name=dict(type='str',),
         host6=dict(type='str',),
         host4=dict(type='str',),
-        shared=dict(type='bool',),
+        uuid=dict(type='str',),
         port=dict(type='int',)
     ))
    
@@ -148,16 +138,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -238,12 +218,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -265,7 +239,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -279,7 +252,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -291,7 +263,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -306,7 +277,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("auditlog", module)
     if module.check_mode:
@@ -389,10 +359,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

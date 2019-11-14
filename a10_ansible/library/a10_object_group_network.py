@@ -69,15 +69,12 @@ options:
             ip_range_end:
                 description:
                 - "IPV4 Host address end"
-            any:
-                description:
-                - "Any host"
             slb_vserver:
                 description:
                 - "Virtual Server"
-            fw_ipv6_subnet:
+            fw_ipv4_address:
                 description:
-                - "IPv6 Network Address"
+                - "IPv4 Network Address"
             ipv6_subnet:
                 description:
                 - "IPv6 Network Address"
@@ -99,9 +96,9 @@ options:
             rev_subnet_mask:
                 description:
                 - "Network Mask. 0=apply, 255=ignore"
-            fw_ipv4_address:
+            any:
                 description:
-                - "IPv4 Network Address"
+                - "Any host"
             ip_range_start:
                 description:
                 - "IPv4 Host Address start"
@@ -119,7 +116,7 @@ options:
         required: False
     net_name:
         description:
-        - "Network Object Group Name"
+        - "Network Object Name"
         required: True
     uuid:
         description:
@@ -169,7 +166,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         description=dict(type='str',),
-        rules=dict(type='list',host_v6=dict(type='str',),subnet=dict(type='str',),host_v4=dict(type='str',),ip_range_end=dict(type='str',),any=dict(type='bool',),slb_vserver=dict(type='str',),fw_ipv6_subnet=dict(type='str',),ipv6_subnet=dict(type='str',),seq_num=dict(type='int',),obj_network=dict(type='str',),ipv6_range_end=dict(type='str',),ipv6_range_start=dict(type='str',),slb_server=dict(type='str',),rev_subnet_mask=dict(type='str',),fw_ipv4_address=dict(type='str',),ip_range_start=dict(type='str',)),
+        rules=dict(type='list',host_v6=dict(type='str',),subnet=dict(type='str',),host_v4=dict(type='str',),ip_range_end=dict(type='str',),slb_vserver=dict(type='str',),fw_ipv4_address=dict(type='str',),ipv6_subnet=dict(type='str',),seq_num=dict(type='int',),obj_network=dict(type='str',),ipv6_range_end=dict(type='str',),ipv6_range_start=dict(type='str',),slb_server=dict(type='str',),rev_subnet_mask=dict(type='str',),any=dict(type='bool',),ip_range_start=dict(type='str',)),
         user_tag=dict(type='str',),
         ip_version=dict(type='str',choices=['v4','v6']),
         usage=dict(type='str',choices=['acl','fw']),
@@ -199,16 +196,6 @@ def existing_url(module):
     f_dict["net-name"] = module.params["net_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -289,12 +276,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -316,7 +297,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -330,7 +310,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -342,7 +321,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -357,7 +335,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("network", module)
     if module.check_mode:
@@ -440,10 +417,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

@@ -108,7 +108,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        stats=dict(type='dict',port_diameter=dict(type='dict',ccr_in=dict(type='str',),svrsel_fail=dict(type='str',),curr=dict(type='str',),acr_out=dict(type='str',),dwr_in=dict(type='str',),num=dict(type='str',),no_route=dict(type='str',),total=dict(type='str',),user_session=dict(type='str',),ccr_out=dict(type='str',),dwr_out=dict(type='str',),sta_in=dict(type='str',),server_fail=dict(type='str',),dwa_in=dict(type='str',),dwa_out=dict(type='str',),asa_in=dict(type='str',),asr_out=dict(type='str',),cca_out=dict(type='str',),aca_out=dict(type='str',),aca_in=dict(type='str',),cca_in=dict(type='str',),other_out=dict(type='str',),cea_out=dict(type='str',),dpr_in=dict(type='str',),asr_in=dict(type='str',),cer_in=dict(type='str',),str_in=dict(type='str',),sta_out=dict(type='str',),snat_fail=dict(type='str',),client_fail=dict(type='str',),cer_out=dict(type='str',),dpa_out=dict(type='str',),cea_in=dict(type='str',),asa_out=dict(type='str',),no_sess=dict(type='str',),dpa_in=dict(type='str',),acr_in=dict(type='str',),dpr_out=dict(type='str',),other_in=dict(type='str',),str_out=dict(type='str',)))
+        stats=dict(type='dict',port_diameter=dict(type='dict',ccr_in=dict(type='str',),svrsel_fail=dict(type='str',),curr=dict(type='str',),acr_out=dict(type='str',),dwr_in=dict(type='str',),num=dict(type='str',),no_route=dict(type='str',),total=dict(type='str',),user_session=dict(type='str',),ccr_out=dict(type='str',),dwr_out=dict(type='str',),sta_in=dict(type='str',),server_fail=dict(type='str',),dwa_in=dict(type='str',),dwa_out=dict(type='str',),asa_in=dict(type='str',),asr_out=dict(type='str',),cca_out=dict(type='str',),aca_out=dict(type='str',),aca_in=dict(type='str',),cca_in=dict(type='str',),other_out=dict(type='str',),cea_out=dict(type='str',),asr_in=dict(type='str',),cer_in=dict(type='str',),str_in=dict(type='str',),sta_out=dict(type='str',),snat_fail=dict(type='str',),client_fail=dict(type='str',),cer_out=dict(type='str',),str_out=dict(type='str',),cea_in=dict(type='str',),asa_out=dict(type='str',),no_sess=dict(type='str',),other_in=dict(type='str',),acr_in=dict(type='str',)))
     ))
    
     # Parent keys
@@ -143,11 +143,6 @@ def existing_url(module):
     f_dict["server_name"] = module.params["server_name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -233,10 +228,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -260,7 +258,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -274,7 +271,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -286,7 +282,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -301,7 +296,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("port", module)
     if module.check_mode:
@@ -384,8 +378,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

@@ -188,7 +188,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         ftp=dict(type='dict',default_port_disable=dict(type='str',choices=['default-port-disable']),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','client-port-request','client-eprt-request','server-pasv-reply','server-epsv-reply','port-retransmits','pasv-retransmits','smp-app-type-mismatch','retransmit-sanity-check-failure','smp-conn-alloc-failure','port-helper-created','pasv-helper-created','port-helper-acquire-in-del-q','port-helper-acquire-already-used','pasv-helper-acquire-in-del-q','pasv-helper-acquire-already-used','port-helper-freed-used','port-helper-freed-unused','pasv-helper-freed-used','pasv-helper-freed-unused'])),uuid=dict(type='str',)),
-        sip=dict(type='dict',default_port_disable=dict(type='str',choices=['default-port-disable']),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','stat-request','stat-response','method-register','method-invite','method-ack','method-cancel','method-bye','method-options','method-prack','method-subscribe','method-notify','method-publish','method-info','method-refer','method-message','method-update','method-unknown','parse-error','keep-alive','contact-error','sdp-error','rtp-port-no-op','rtp-rtcp-port-success','rtp-port-failure','rtcp-port-failure','contact-port-no-op','contact-port-success','contact-port-failure','contact-new','contact-alloc-failure','contact-eim','contact-eim-set','rtp-new','rtp-alloc-failure','rtp-eim','helper-found','helper-created','helper-deleted','helper-freed','helper-failure'])),uuid=dict(type='str',)),
+        sip=dict(type='dict',default_port_disable=dict(type='str',choices=['default-port-disable']),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','stat-request','stat-response','method-register','method-invite','method-ack','method-cancel','method-bye','method-port-config','method-prack','method-subscribe','method-notify','method-publish','method-info','method-refer','method-message','method-update','method-unknown','parse-error','keep-alive','contact-error','sdp-error','rtp-port-no-op','rtp-rtcp-port-success','rtp-port-failure','rtcp-port-failure','contact-port-no-op','contact-port-success','contact-port-failure','contact-new','contact-alloc-failure','contact-eim','contact-eim-set','rtp-new','rtp-alloc-failure','rtp-eim','helper-found','helper-created','helper-deleted','helper-freed','helper-failure'])),uuid=dict(type='str',)),
         uuid=dict(type='str',),
         pptp=dict(type='dict',default_port_disable=dict(type='str',choices=['default-port-disable']),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','calls-established','call-req-pns-call-id-mismatch','call-reply-pns-call-id-mismatch','gre-session-created','gre-session-freed','call-req-retransmit','call-req-new','call-req-ext-alloc-failure','call-reply-call-id-unknown','call-reply-retransmit','call-reply-ext-ext-alloc-failure','smp-app-type-mismatch','smp-client-call-id-mismatch','smp-sessions-created','smp-sessions-freed','smp-alloc-failure','gre-conn-creation-failure','gre-conn-ext-creation-failure','gre-no-fwd-route','gre-no-rev-route','gre-no-control-conn','gre-conn-already-exists','gre-free-no-ext','gre-free-no-smp','gre-free-smp-app-type-mismatch','control-freed','control-free-no-ext','control-free-no-smp','control-free-smp-app-type-mismatch'])),uuid=dict(type='str',)),
         rtsp=dict(type='dict',default_port_disable=dict(type='str',choices=['default-port-disable']),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','transport-inserted','transport-freed','transport-alloc-failure','data-session-created','data-session-freed','ext-creation-failure','transport-add-to-ext','transport-removed-from-ext','transport-too-many','transport-already-in-ext','transport-exists','transport-link-ext-failure-control','transport-link-ext-data','transport-link-ext-failure-data','transport-inserted-shadow','transport-creation-race','transport-alloc-failure-shadow','transport-put-in-del-q','transport-freed-shadow','transport-acquired-from-control','transport-found-from-prev-control','transport-acquire-failure-from-control','transport-released-from-control','transport-double-release-from-control','transport-acquired-from-data','transport-acquire-failure-from-data','transport-released-from-data','transport-double-release-from-data','transport-retry-lookup-on-data-free','transport-not-found-on-data-free','data-session-created-shadow','data-session-freed-shadow','ha-control-ext-creation-failure','ha-control-session-created','ha-data-session-created'])),uuid=dict(type='str',)),
@@ -217,16 +217,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -307,12 +297,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -334,7 +318,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -348,7 +331,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -360,7 +342,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -375,7 +356,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("alg", module)
     if module.check_mode:
@@ -458,10 +438,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

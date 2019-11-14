@@ -60,10 +60,6 @@ options:
         description:
         - "uuid of the object"
         required: False
-    v4_count:
-        description:
-        - "Number of addresses to be translated in this range"
-        required: False
     local_start_ipv6_addr:
         description:
         - "Local Start IPv6 Address of this list"
@@ -72,10 +68,6 @@ options:
         description:
         - "Name for this Static List"
         required: True
-    global_start_ipv4_addr:
-        description:
-        - "Global Start IPv4 Address of this list"
-        required: False
     local_netmaskv4:
         description:
         - "Mask for this Address range"
@@ -84,21 +76,17 @@ options:
         description:
         - "Local Start IPv4 Address of this list"
         required: False
-    v4_acl_name:
+    global_start_ipv4_addr:
         description:
-        - "Access list name"
+        - "Global Start IPv4 Address of this list"
         required: False
     v6_vrid:
         description:
         - "VRRP-A vrid (Specify ha VRRP-A vrid)"
         required: False
-    v6_acl_name:
+    v4_count:
         description:
-        - "Access list name"
-        required: False
-    v4_acl_id:
-        description:
-        - "Access list ID"
+        - "Number of addresses to be translated in this range"
         required: False
     v6_count:
         description:
@@ -122,7 +110,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["global_netmaskv4","global_start_ipv4_addr","global_start_ipv6_addr","local_netmaskv4","local_start_ipv4_addr","local_start_ipv6_addr","name","uuid","v4_acl_id","v4_acl_name","v4_count","v4_vrid","v6_acl_name","v6_count","v6_vrid",]
+AVAILABLE_PROPERTIES = ["global_netmaskv4","global_start_ipv4_addr","global_start_ipv6_addr","local_netmaskv4","local_start_ipv4_addr","local_start_ipv6_addr","name","uuid","v4_count","v4_vrid","v6_count","v6_vrid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -154,16 +142,13 @@ def get_argspec():
         global_start_ipv6_addr=dict(type='str',),
         v4_vrid=dict(type='int',),
         uuid=dict(type='str',),
-        v4_count=dict(type='int',),
         local_start_ipv6_addr=dict(type='str',),
         name=dict(type='str',required=True,),
-        global_start_ipv4_addr=dict(type='str',),
         local_netmaskv4=dict(type='str',),
         local_start_ipv4_addr=dict(type='str',),
-        v4_acl_name=dict(type='str',),
+        global_start_ipv4_addr=dict(type='str',),
         v6_vrid=dict(type='int',),
-        v6_acl_name=dict(type='str',),
-        v4_acl_id=dict(type='int',),
+        v4_count=dict(type='int',),
         v6_count=dict(type='int',),
         global_netmaskv4=dict(type='str',)
     ))
@@ -190,16 +175,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -280,12 +255,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -307,7 +276,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -321,7 +289,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -333,7 +300,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -348,7 +314,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("range-list", module)
     if module.check_mode:
@@ -431,10 +396,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

@@ -121,7 +121,7 @@ options:
         suboptions:
             value:
                 description:
-                - "Metric Value (from -4294967295 to 4294967295)"
+                - "Metric value"
     as_path:
         description:
         - "Field as_path"
@@ -175,20 +175,6 @@ options:
             val:
                 description:
                 - "Preference value"
-    ddos:
-        description:
-        - "Field ddos"
-        required: False
-        suboptions:
-            class_list_name:
-                description:
-                - "Class-List Name"
-            class_list_cid:
-                description:
-                - "Class-List Cid"
-            zone:
-                description:
-                - "Zone Name"
     tag:
         description:
         - "Field tag"
@@ -262,7 +248,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["aggregator","as_path","atomic_aggregate","comm_list","community","dampening_cfg","ddos","extcommunity","ip","ipv6","level","local_preference","metric","metric_type","origin","originator_id","tag","uuid","weight",]
+AVAILABLE_PROPERTIES = ["aggregator","as_path","atomic_aggregate","comm_list","community","dampening_cfg","extcommunity","ip","ipv6","level","local_preference","metric","metric_type","origin","originator_id","tag","uuid","weight",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -303,7 +289,6 @@ def get_argspec():
         atomic_aggregate=dict(type='bool',),
         community=dict(type='str',),
         local_preference=dict(type='dict',val=dict(type='int',)),
-        ddos=dict(type='dict',class_list_name=dict(type='str',),class_list_cid=dict(type='int',),zone=dict(type='str',)),
         tag=dict(type='dict',value=dict(type='int',)),
         aggregator=dict(type='dict',aggregator_as=dict(type='dict',ip=dict(type='str',),asn=dict(type='int',))),
         dampening_cfg=dict(type='dict',dampening_max_supress=dict(type='int',),dampening=dict(type='bool',),dampening_penalty=dict(type='int',),dampening_half_time=dict(type='int',),dampening_supress=dict(type='int',),dampening_reuse=dict(type='int',)),
@@ -344,16 +329,6 @@ def existing_url(module):
     f_dict["route_map_tag"] = module.params["route_map_tag"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -434,12 +409,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -461,7 +430,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -475,7 +443,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -487,7 +454,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -502,7 +468,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("set", module)
     if module.check_mode:
@@ -585,10 +550,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

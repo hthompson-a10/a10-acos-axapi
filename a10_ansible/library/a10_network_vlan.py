@@ -48,10 +48,29 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    traffic_distribution_mode:
+    stats:
         description:
-        - "'sip'= sip; 'dip'= dip; 'primary'= primary; 'blade'= blade; 'l4-src-port'= l4-src-port; 'l4-dst-port'= l4-dst-port; "
+        - "Field stats"
         required: False
+        suboptions:
+            mac_movement_count:
+                description:
+                - "Mac Movement counter"
+            vlan_num:
+                description:
+                - "VLAN number"
+            multicast_count:
+                description:
+                - "Multicast counter"
+            ip_multicast_count:
+                description:
+                - "IP Multicast counter"
+            unknown_unicast_count:
+                description:
+                - "Unknown Unicast counter"
+            broadcast_count:
+                description:
+                - "Broadcast counter"
     uuid:
         description:
         - "uuid of the object"
@@ -101,7 +120,7 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'broadcast_count'= Broadcast counter; 'multicast_count'= Multicast counter; 'ip_multicast_count'= IP Multicast counter; 'unknown_unicast_count'= Unknown Unicast counter; 'mac_movement_count'= Mac Movement counter; 'shared_vlan_partition_switched_counter'= SVLAN Partition switched counter; "
+                - "'all'= all; 'broadcast_count'= Broadcast counter; 'multicast_count'= Multicast counter; 'ip_multicast_count'= IP Multicast counter; 'unknown_unicast_count'= Unknown Unicast counter; 'mac_movement_count'= Mac Movement counter; "
     tagged_trunk_list:
         description:
         - "Field tagged_trunk_list"
@@ -146,7 +165,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["name","sampling_enable","shared_vlan","tagged_eth_list","tagged_trunk_list","traffic_distribution_mode","untagged_eth_list","untagged_lif","untagged_trunk_list","user_tag","uuid","ve","vlan_num",]
+AVAILABLE_PROPERTIES = ["name","sampling_enable","shared_vlan","stats","tagged_eth_list","tagged_trunk_list","untagged_eth_list","untagged_lif","untagged_trunk_list","user_tag","uuid","ve","vlan_num",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -175,7 +194,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        traffic_distribution_mode=dict(type='str',choices=['sip','dip','primary','blade','l4-src-port','l4-dst-port']),
+        stats=dict(type='dict',mac_movement_count=dict(type='str',),vlan_num=dict(type='int',required=True,),multicast_count=dict(type='str',),ip_multicast_count=dict(type='str',),unknown_unicast_count=dict(type='str',),broadcast_count=dict(type='str',)),
         uuid=dict(type='str',),
         untagged_trunk_list=dict(type='list',untagged_trunk_start=dict(type='int',),untagged_trunk_end=dict(type='int',)),
         untagged_lif=dict(type='int',),
@@ -183,7 +202,7 @@ def get_argspec():
         user_tag=dict(type='str',),
         name=dict(type='str',),
         vlan_num=dict(type='int',required=True,),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','broadcast_count','multicast_count','ip_multicast_count','unknown_unicast_count','mac_movement_count','shared_vlan_partition_switched_counter'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','broadcast_count','multicast_count','ip_multicast_count','unknown_unicast_count','mac_movement_count'])),
         tagged_trunk_list=dict(type='list',tagged_trunk_start=dict(type='int',),tagged_trunk_end=dict(type='int',)),
         shared_vlan=dict(type='bool',),
         tagged_eth_list=dict(type='list',tagged_ethernet_end=dict(type='str',),tagged_ethernet_start=dict(type='str',)),
@@ -212,11 +231,6 @@ def existing_url(module):
     f_dict["vlan-num"] = module.params["vlan_num"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -302,10 +316,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -329,7 +346,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -343,7 +359,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -355,7 +370,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -370,7 +384,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("vlan", module)
     if module.check_mode:
@@ -453,8 +466,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

@@ -48,6 +48,41 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            total_system_memory:
+                description:
+                - "Field total_system_memory"
+            total_free_fpga_buff:
+                description:
+                - "Field total_free_fpga_buff"
+            total_fpga_buffers:
+                description:
+                - "Field total_fpga_buffers"
+            free_fpga_buffers:
+                description:
+                - "Field free_fpga_buffers"
+            free_session_memory:
+                description:
+                - "Field free_session_memory"
+            avail_fpga_buff_domain1:
+                description:
+                - "Field avail_fpga_buff_domain1"
+            avail_fpga_buff_domain2:
+                description:
+                - "Field avail_fpga_buff_domain2"
+            total_session_memory:
+                description:
+                - "Field total_session_memory"
+            fpga_buff_recovery_threshold:
+                description:
+                - "Field fpga_buff_recovery_threshold"
+            sess_mem_recovery_threshold:
+                description:
+                - "Field sess_mem_recovery_threshold"
     session_mem_recovery_threshold:
         description:
         - "Session memory recovery threshold (percentage) (Percentage of available session memory (default 30%))"
@@ -72,49 +107,14 @@ options:
         description:
         - "Enable fail-safe software error monitor"
         required: False
-    fpga_monitor_enable:
-        description:
-        - "FPGA monitor feature enable"
-        required: False
-    fpga_monitor_threshold:
-        description:
-        - "FPGA monitor packet missed for error condition (Numbers of missed monitor packets before setting error condition (default 3))"
-        required: False
-    fpga_monitor_forced_reboot:
-        description:
-        - "FPGA monitor forced reboot in error condition"
-        required: False
     kill:
         description:
         - "Stop the traffic and log the event"
         required: False
-    disable_failsafe:
-        description:
-        - "Field disable_failsafe"
-        required: False
-        suboptions:
-            action:
-                description:
-                - "'all'= Disable All; 'io-buffer'= Disable I/O Buffer; 'session-memory'= Disable Session Memory; 'system-memory'= Disable System Memory; "
-            uuid:
-                description:
-                - "uuid of the object"
     total_memory_size_check:
         description:
         - "Check total memory size of current system (Size of memory (GB))"
         required: False
-    fpga_monitor_interval:
-        description:
-        - "FPGA monitor packet interval (seconds) (Numbers of seconds between sending packets (default 1))"
-        required: False
-    config:
-        description:
-        - "Field config"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
     sw_error_recovery_timeout:
         description:
         - "Software error recovery timeout (minutes) (waiting time of recovery from software errors (default 3))"
@@ -137,7 +137,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["config","disable_failsafe","fpga_buff_recovery_threshold","fpga_monitor_enable","fpga_monitor_forced_reboot","fpga_monitor_interval","fpga_monitor_threshold","hw_error_monitor","hw_error_recovery_timeout","kill","log","session_mem_recovery_threshold","sw_error_monitor_enable","sw_error_recovery_timeout","total_memory_size_check","uuid",]
+AVAILABLE_PROPERTIES = ["fpga_buff_recovery_threshold","hw_error_monitor","hw_error_recovery_timeout","kill","log","oper","session_mem_recovery_threshold","sw_error_monitor_enable","sw_error_recovery_timeout","total_memory_size_check","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -166,20 +166,15 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',total_system_memory=dict(type='int',),total_free_fpga_buff=dict(type='int',),total_fpga_buffers=dict(type='int',),free_fpga_buffers=dict(type='int',),free_session_memory=dict(type='int',),avail_fpga_buff_domain1=dict(type='int',),avail_fpga_buff_domain2=dict(type='int',),total_session_memory=dict(type='int',),fpga_buff_recovery_threshold=dict(type='int',),sess_mem_recovery_threshold=dict(type='int',)),
         session_mem_recovery_threshold=dict(type='int',),
         log=dict(type='bool',),
         fpga_buff_recovery_threshold=dict(type='int',),
         hw_error_monitor=dict(type='str',choices=['hw-error-monitor-disable','hw-error-monitor-enable']),
         hw_error_recovery_timeout=dict(type='int',),
         sw_error_monitor_enable=dict(type='bool',),
-        fpga_monitor_enable=dict(type='bool',),
-        fpga_monitor_threshold=dict(type='int',),
-        fpga_monitor_forced_reboot=dict(type='bool',),
         kill=dict(type='bool',),
-        disable_failsafe=dict(type='dict',action=dict(type='str',choices=['all','io-buffer','session-memory','system-memory']),uuid=dict(type='str',)),
         total_memory_size_check=dict(type='int',),
-        fpga_monitor_interval=dict(type='int',),
-        config=dict(type='dict',uuid=dict(type='str',)),
         sw_error_recovery_timeout=dict(type='int',),
         uuid=dict(type='str',)
     ))
@@ -209,11 +204,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -295,10 +285,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -321,7 +314,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -335,7 +327,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -347,7 +338,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -362,7 +352,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("fail-safe", module)
     if module.check_mode:
@@ -447,8 +436,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

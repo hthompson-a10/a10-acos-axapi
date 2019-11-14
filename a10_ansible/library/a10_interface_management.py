@@ -111,29 +111,6 @@ options:
             ipv4_netmask:
                 description:
                 - "IP subnet mask"
-    secondary_ip:
-        description:
-        - "Field secondary_ip"
-        required: False
-        suboptions:
-            ipv4_netmask:
-                description:
-                - "IP subnet mask"
-            control_apps_use_mgmt_port:
-                description:
-                - "Control applications use management port"
-            secondary_ip:
-                description:
-                - "Global IP configuration subcommands"
-            default_gateway:
-                description:
-                - "Set default gateway (Default gateway address)"
-            dhcp:
-                description:
-                - "Use DHCP to configure IP address"
-            ipv4_address:
-                description:
-                - "IP address"
     access_list:
         description:
         - "Field access_list"
@@ -145,14 +122,6 @@ options:
             acl_id:
                 description:
                 - "ACL id"
-    sampling_enable:
-        description:
-        - "Field sampling_enable"
-        required: False
-        suboptions:
-            counters1:
-                description:
-                - "'all'= all; 'packets_input'= Input packets; 'bytes_input'= Input bytes; 'received_broadcasts'= Received broadcasts; 'received_multicasts'= Received multicasts; 'received_unicasts'= Received unicasts; 'input_errors'= Input errors; 'crc'= CRC; 'frame'= Frames; 'input_err_short'= Runts; 'input_err_long'= Giants; 'packets_output'= Output packets; 'bytes_output'= Output bytes; 'transmitted_broadcasts'= Transmitted broadcasts; 'transmitted_multicasts'= Transmitted multicasts; 'transmitted_unicasts'= Transmitted unicasts; 'output_errors'= Output errors; 'collisions'= Collisions; "
     ipv6:
         description:
         - "Field ipv6"
@@ -195,7 +164,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["access_list","action","broadcast_rate_limit","duplexity","flow_control","ip","ipv6","lldp","sampling_enable","secondary_ip","speed","uuid",]
+AVAILABLE_PROPERTIES = ["access_list","action","broadcast_rate_limit","duplexity","flow_control","ip","ipv6","lldp","speed","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -230,10 +199,8 @@ def get_argspec():
         uuid=dict(type='str',),
         duplexity=dict(type='str',choices=['Full','Half','auto']),
         ip=dict(type='dict',dhcp=dict(type='bool',),ipv4_address=dict(type='str',),control_apps_use_mgmt_port=dict(type='bool',),default_gateway=dict(type='str',),ipv4_netmask=dict(type='str',)),
-        secondary_ip=dict(type='dict',ipv4_netmask=dict(type='str',),control_apps_use_mgmt_port=dict(type='bool',),secondary_ip=dict(type='bool',),default_gateway=dict(type='str',),dhcp=dict(type='bool',),ipv4_address=dict(type='str',)),
         access_list=dict(type='dict',acl_name=dict(type='str',),acl_id=dict(type='int',)),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','packets_input','bytes_input','received_broadcasts','received_multicasts','received_unicasts','input_errors','crc','frame','input_err_short','input_err_long','packets_output','bytes_output','transmitted_broadcasts','transmitted_multicasts','transmitted_unicasts','output_errors','collisions'])),
-        ipv6=dict(type='list',inbound=dict(type='bool',),address_type=dict(type='str',choices=['link-local']),default_ipv6_gateway=dict(type='str',),ipv6_addr=dict(type='str',),v6_acl_name=dict(type='str',)),
+        ipv6=dict(type='dict',inbound=dict(type='bool',),address_type=dict(type='str',choices=['link-local']),default_ipv6_gateway=dict(type='str',),ipv6_addr=dict(type='str',),v6_acl_name=dict(type='str',)),
         action=dict(type='str',choices=['enable','disable']),
         speed=dict(type='str',choices=['10','100','1000','auto'])
     ))
@@ -258,16 +225,6 @@ def existing_url(module):
     f_dict = {}
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -348,12 +305,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -375,7 +326,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -389,19 +339,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
-def delete(module, result):
-    try:
-        module.client.delete(existing_url(module))
-        result["changed"] = True
-    except a10_ex.NotFound:
-        result["changed"] = False
-    except a10_ex.ACOSException as ex:
-        module.fail_json(msg=ex.msg, **result)
-    except Exception as gex:
-        raise gex
-    return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -416,7 +353,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("management", module)
     if module.check_mode:
@@ -499,10 +435,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

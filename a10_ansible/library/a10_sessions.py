@@ -48,26 +48,54 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
-    ext:
+    oper:
         description:
-        - "Field ext"
+        - "Field oper"
         required: False
         suboptions:
-            uuid:
+            dst_ipv4_addr:
                 description:
-                - "uuid of the object"
+                - "Field dst_ipv4_addr"
+            src_ipv6_addr:
+                description:
+                - "Field src_ipv6_addr"
+            dst_ipv6_addr:
+                description:
+                - "Field dst_ipv6_addr"
+            name_str:
+                description:
+                - "Field name_str"
+            total_sessions:
+                description:
+                - "Field total_sessions"
+            src_ipv4_addr:
+                description:
+                - "Field src_ipv4_addr"
+            src_port:
+                description:
+                - "Field src_port"
+            dest_port:
+                description:
+                - "Field dest_port"
+            nat_port:
+                description:
+                - "Field nat_port"
+            nat_ipv4_addr:
+                description:
+                - "Field nat_ipv4_addr"
+            filter_type:
+                description:
+                - "Field filter_type"
+            l4_protocol:
+                description:
+                - "Field l4_protocol"
+            session_list:
+                description:
+                - "Field session_list"
     uuid:
         description:
         - "uuid of the object"
         required: False
-    smp:
-        description:
-        - "Field smp"
-        required: False
-        suboptions:
-            uuid:
-                description:
-                - "uuid of the object"
 
 
 """
@@ -82,7 +110,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["ext","smp","uuid",]
+AVAILABLE_PROPERTIES = ["oper","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -111,9 +139,8 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
-        ext=dict(type='dict',uuid=dict(type='str',)),
-        uuid=dict(type='str',),
-        smp=dict(type='dict',uuid=dict(type='str',))
+        oper=dict(type='dict',dst_ipv4_addr=dict(type='str',),src_ipv6_addr=dict(type='str',),dst_ipv6_addr=dict(type='str',),name_str=dict(type='str',),total_sessions=dict(type='int',),src_ipv4_addr=dict(type='str',),src_port=dict(type='int',),dest_port=dict(type='int',),nat_port=dict(type='int',),nat_ipv4_addr=dict(type='str',),filter_type=dict(type='str',choices=['ipv4','ipv6','nat44','nat64','persist-ipv6-srcp-ip','persist-ipv6-dst-ip','persist-ipv6-ssl-id','persist-dst-ip','persist-src-ip','persist-uie','persist-ssl-id','radius','rserver','vserver','sip','sixrd','filter','ds-lite','dns-id-switch','local']),l4_protocol=dict(type='str',choices=['udp','tcp','icmp','icmpv6']),session_list=dict(type='list',protocol=dict(type='str',),sip_call_id=dict(type='str',),forward_source=dict(type='str',),age=dict(type='int',),app_type=dict(type='str',),forward_dest=dict(type='str',),flags=dict(type='str',),hash=dict(type='int',),reverse_source=dict(type='str',),reverse_dest=dict(type='str',))),
+        uuid=dict(type='str',)
     ))
    
 
@@ -141,11 +168,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -227,10 +249,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -238,25 +263,13 @@ def exists(module):
     except a10_ex.NotFound:
         return None
 
-def report_changes(module, result, existing_config, payload):
+def report_changes(module, result, existing_config):
     if existing_config:
-        for k, v in payload["sessions"].items():
-            if v.lower() == "true":
-                v = 1
-            elif v.lower() == "false":
-                v = 0
-            if existing_config["sessions"][k] != v:
-                if result["changed"] != True:
-                    result["changed"] = True
-                existing_config["sessions"][k] = v
-        result.update(**existing_config)
-    else:
-        result.update(**payload)
+        result["changed"] = True
     return result
-
-def create(module, result, payload):
+def create(module, result):
     try:
-        post_result = module.client.post(new_url(module), payload)
+        post_result = module.client.post(new_url(module))
         if post_result:
             result.update(**post_result)
         result["changed"] = True
@@ -267,7 +280,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -279,10 +291,9 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
-def update(module, result, existing_config, payload):
+def update(module, result, existing_config):
     try:
-        post_result = module.client.post(existing_url(module), payload)
+        post_result = module.client.post(existing_url(module))
         if post_result:
             result.update(**post_result)
         if post_result == existing_config:
@@ -294,15 +305,13 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
-    payload = build_json("sessions", module)
     if module.check_mode:
-        return report_changes(module, result, existing_config, payload)
-    elif not existing_config:
-        return create(module, result, payload)
+        return report_changes(module, result, existing_config)
+    if not existing_config:
+        return create(module, result)
     else:
-        return update(module, result, existing_config, payload)
+        return update(module, result, existing_config)
 
 def absent(module, result, existing_config):
     if module.check_mode:
@@ -315,9 +324,9 @@ def absent(module, result, existing_config):
     else:
         return delete(module, result)
 
-def replace(module, result, existing_config, payload):
+def replace(module, result, existing_config):
     try:
-        post_result = module.client.put(existing_url(module), payload)
+        post_result = module.client.put(existing_url(module))
         if post_result:
             result.update(**post_result)
         if post_result == existing_config:
@@ -379,8 +388,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

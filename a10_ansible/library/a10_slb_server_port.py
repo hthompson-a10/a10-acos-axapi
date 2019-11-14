@@ -51,6 +51,44 @@ options:
     server_name:
         description:
         - Key to identify parent object
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            vrid:
+                description:
+                - "Field vrid"
+            ha_group_id:
+                description:
+                - "Field ha_group_id"
+            alloc_failed:
+                description:
+                - "Field alloc_failed"
+            ports_consumed:
+                description:
+                - "Field ports_consumed"
+            protocol:
+                description:
+                - "'tcp'= TCP Port; 'udp'= UDP Port; "
+            ipv6:
+                description:
+                - "Field ipv6"
+            state:
+                description:
+                - "Field state"
+            port_number:
+                description:
+                - "Port Number"
+            ip:
+                description:
+                - "Field ip"
+            ports_freed_total:
+                description:
+                - "Field ports_freed_total"
+            ports_consumed_total:
+                description:
+                - "Field ports_consumed_total"
     health_check_disable:
         description:
         - "Disable health check"
@@ -62,10 +100,6 @@ options:
     weight:
         description:
         - "Port Weight (Connection Weight)"
-        required: False
-    shared_rport_health_check:
-        description:
-        - "Reference a health-check from shared partition"
         required: False
     stats_data_action:
         description:
@@ -83,13 +117,122 @@ options:
         description:
         - "Connection Limit"
         required: False
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            es_resp_invalid_http:
+                description:
+                - "Total non-http response"
+            curr_req:
+                description:
+                - "Current requests"
+            protocol:
+                description:
+                - "'tcp'= TCP Port; 'udp'= UDP Port; "
+            total_rev_pkts_inspected_good_status_code:
+                description:
+                - "Total reverse packets with good status code inspected"
+            resp_1xx:
+                description:
+                - "Response status 1xx"
+            curr_ssl_conn:
+                description:
+                - "Current SSL connections"
+            resp_2xx:
+                description:
+                - "Response status 2xx"
+            es_resp_count:
+                description:
+                - "Total proxy response"
+            total_fwd_bytes:
+                description:
+                - "Bytes processed in forward direction"
+            es_resp_other:
+                description:
+                - "Response status other"
+            fastest_rsp_time:
+                description:
+                - "Fastest response time"
+            total_fwd_pkts:
+                description:
+                - "Packets processed in forward direction"
+            resp_3xx:
+                description:
+                - "Response status 3xx"
+            resp_latency:
+                description:
+                - "Time to First Response Byte"
+            resp_count:
+                description:
+                - "Total Response Count"
+            es_req_count:
+                description:
+                - "Total proxy requests"
+            resp_other:
+                description:
+                - "Response status Other"
+            es_resp_500:
+                description:
+                - "Response status 500"
+            peak_conn:
+                description:
+                - "Peak connections"
+            total_req:
+                description:
+                - "Total Requests"
+            es_resp_400:
+                description:
+                - "Response status 400"
+            es_resp_300:
+                description:
+                - "Response status 300"
+            curr_conn:
+                description:
+                - "Current connections"
+            port_number:
+                description:
+                - "Port Number"
+            es_resp_200:
+                description:
+                - "Response status 200"
+            total_rev_bytes:
+                description:
+                - "Bytes processed in reverse direction"
+            response_time:
+                description:
+                - "Response time"
+            resp_4xx:
+                description:
+                - "Response status 4xx"
+            total_ssl_conn:
+                description:
+                - "Total SSL connections"
+            total_conn:
+                description:
+                - "Total connections"
+            total_rev_pkts:
+                description:
+                - "Packets processed in reverse direction"
+            total_req_succ:
+                description:
+                - "Total requests succ"
+            last_total_conn:
+                description:
+                - "Last total connections"
+            total_rev_pkts_inspected:
+                description:
+                - "Total reverse packets inspected"
+            resp_5xx:
+                description:
+                - "Response status 5xx"
+            slowest_rsp_time:
+                description:
+                - "Slowest response time"
     uuid:
         description:
         - "uuid of the object"
-        required: False
-    support_http2:
-        description:
-        - "Starting HTTP/2 with Prior Knowledge"
         required: False
     sampling_enable:
         description:
@@ -98,7 +241,7 @@ options:
         suboptions:
             counters1:
                 description:
-                - "'all'= all; 'curr_req'= Current requests; 'total_req'= Total Requests; 'total_req_succ'= Total requests succ; 'total_fwd_bytes'= Bytes processed in forward direction; 'total_fwd_pkts'= Packets processed in forward direction; 'total_rev_bytes'= Bytes processed in reverse direction; 'total_rev_pkts'= Packets processed in reverse direction; 'total_conn'= Total connections; 'last_total_conn'= Last total connections; 'peak_conn'= Peak connections; 'es_resp_200'= Response status 200; 'es_resp_300'= Response status 300; 'es_resp_400'= Response status 400; 'es_resp_500'= Response status 500; 'es_resp_other'= Response status other; 'es_req_count'= Total proxy requests; 'es_resp_count'= Total proxy response; 'es_resp_invalid_http'= Total non-http response; 'total_rev_pkts_inspected'= Total reverse packets inspected; 'total_rev_pkts_inspected_good_status_code'= Total reverse packets with good status code inspected; 'response_time'= Response time; 'fastest_rsp_time'= Fastest response time; 'slowest_rsp_time'= Slowest response time; 'curr_ssl_conn'= Current SSL connections; 'total_ssl_conn'= Total SSL connections; 'resp-count'= Total Response Count; 'resp-1xx'= Response status 1xx; 'resp-2xx'= Response status 2xx; 'resp-3xx'= Response status 3xx; 'resp-4xx'= Response status 4xx; 'resp-5xx'= Response status 5xx; 'resp-other'= Response status Other; 'resp-latency'= Time to First Response Byte; 'curr_pconn'= Current persistent connections; "
+                - "'all'= all; 'curr_req'= Current requests; 'total_req'= Total Requests; 'total_req_succ'= Total requests succ; 'total_fwd_bytes'= Bytes processed in forward direction; 'total_fwd_pkts'= Packets processed in forward direction; 'total_rev_bytes'= Bytes processed in reverse direction; 'total_rev_pkts'= Packets processed in reverse direction; 'total_conn'= Total connections; 'last_total_conn'= Last total connections; 'peak_conn'= Peak connections; 'es_resp_200'= Response status 200; 'es_resp_300'= Response status 300; 'es_resp_400'= Response status 400; 'es_resp_500'= Response status 500; 'es_resp_other'= Response status other; 'es_req_count'= Total proxy requests; 'es_resp_count'= Total proxy response; 'es_resp_invalid_http'= Total non-http response; 'total_rev_pkts_inspected'= Total reverse packets inspected; 'total_rev_pkts_inspected_good_status_code'= Total reverse packets with good status code inspected; 'response_time'= Response time; 'fastest_rsp_time'= Fastest response time; 'slowest_rsp_time'= Slowest response time; 'curr_ssl_conn'= Current SSL connections; 'total_ssl_conn'= Total SSL connections; 'resp-count'= Total Response Count; 'resp-1xx'= Response status 1xx; 'resp-2xx'= Response status 2xx; 'resp-3xx'= Response status 3xx; 'resp-4xx'= Response status 4xx; 'resp-5xx'= Response status 5xx; 'resp-other'= Response status Other; 'resp-latency'= Time to First Response Byte; "
     no_ssl:
         description:
         - "No SSL"
@@ -133,10 +276,6 @@ options:
         description:
         - "Enable extended statistics on real server port"
         required: False
-    rport_health_check_shared:
-        description:
-        - "Health Check (Monitor Name)"
-        required: False
     conn_resume:
         description:
         - "Connection Resume"
@@ -147,7 +286,7 @@ options:
         required: False
     range:
         description:
-        - "Port range (Port range value - used for vip-to-rport-mapping and vport-rport range mapping)"
+        - "Port range (Port range value - used for vip-to-rport-mapping)"
         required: False
     auth_cfg:
         description:
@@ -183,7 +322,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["action","alternate_port","auth_cfg","conn_limit","conn_resume","extended_stats","follow_port_protocol","health_check","health_check_disable","health_check_follow_port","no_logging","no_ssl","port_number","protocol","range","rport_health_check_shared","sampling_enable","shared_rport_health_check","stats_data_action","support_http2","template_port","template_server_ssl","user_tag","uuid","weight",]
+AVAILABLE_PROPERTIES = ["action","alternate_port","auth_cfg","conn_limit","conn_resume","extended_stats","follow_port_protocol","health_check","health_check_disable","health_check_follow_port","no_logging","no_ssl","oper","port_number","protocol","range","sampling_enable","stats","stats_data_action","template_port","template_server_ssl","user_tag","uuid","weight",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -212,24 +351,23 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',vrid=dict(type='int',),ha_group_id=dict(type='int',),alloc_failed=dict(type='int',),ports_consumed=dict(type='int',),protocol=dict(type='str',required=True,choices=['tcp','udp']),ipv6=dict(type='str',),state=dict(type='str',choices=['Up','Down','Disabled','Maintenance','Unknown','DIS-UP','DIS-DOWN','DIS-MAINTENANCE','DIS-EXCEED-RATE']),port_number=dict(type='int',required=True,),ip=dict(type='str',),ports_freed_total=dict(type='int',),ports_consumed_total=dict(type='int',)),
         health_check_disable=dict(type='bool',),
         protocol=dict(type='str',required=True,choices=['tcp','udp']),
         weight=dict(type='int',),
-        shared_rport_health_check=dict(type='bool',),
         stats_data_action=dict(type='str',choices=['stats-data-enable','stats-data-disable']),
         health_check_follow_port=dict(type='int',),
         template_port=dict(type='str',),
         conn_limit=dict(type='int',),
+        stats=dict(type='dict',es_resp_invalid_http=dict(type='str',),curr_req=dict(type='str',),protocol=dict(type='str',required=True,choices=['tcp','udp']),total_rev_pkts_inspected_good_status_code=dict(type='str',),resp_1xx=dict(type='str',),curr_ssl_conn=dict(type='str',),resp_2xx=dict(type='str',),es_resp_count=dict(type='str',),total_fwd_bytes=dict(type='str',),es_resp_other=dict(type='str',),fastest_rsp_time=dict(type='str',),total_fwd_pkts=dict(type='str',),resp_3xx=dict(type='str',),resp_latency=dict(type='str',),resp_count=dict(type='str',),es_req_count=dict(type='str',),resp_other=dict(type='str',),es_resp_500=dict(type='str',),peak_conn=dict(type='str',),total_req=dict(type='str',),es_resp_400=dict(type='str',),es_resp_300=dict(type='str',),curr_conn=dict(type='str',),port_number=dict(type='int',required=True,),es_resp_200=dict(type='str',),total_rev_bytes=dict(type='str',),response_time=dict(type='str',),resp_4xx=dict(type='str',),total_ssl_conn=dict(type='str',),total_conn=dict(type='str',),total_rev_pkts=dict(type='str',),total_req_succ=dict(type='str',),last_total_conn=dict(type='str',),total_rev_pkts_inspected=dict(type='str',),resp_5xx=dict(type='str',),slowest_rsp_time=dict(type='str',)),
         uuid=dict(type='str',),
-        support_http2=dict(type='bool',),
-        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','curr_req','total_req','total_req_succ','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_conn','last_total_conn','peak_conn','es_resp_200','es_resp_300','es_resp_400','es_resp_500','es_resp_other','es_req_count','es_resp_count','es_resp_invalid_http','total_rev_pkts_inspected','total_rev_pkts_inspected_good_status_code','response_time','fastest_rsp_time','slowest_rsp_time','curr_ssl_conn','total_ssl_conn','resp-count','resp-1xx','resp-2xx','resp-3xx','resp-4xx','resp-5xx','resp-other','resp-latency','curr_pconn'])),
+        sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','curr_req','total_req','total_req_succ','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_conn','last_total_conn','peak_conn','es_resp_200','es_resp_300','es_resp_400','es_resp_500','es_resp_other','es_req_count','es_resp_count','es_resp_invalid_http','total_rev_pkts_inspected','total_rev_pkts_inspected_good_status_code','response_time','fastest_rsp_time','slowest_rsp_time','curr_ssl_conn','total_ssl_conn','resp-count','resp-1xx','resp-2xx','resp-3xx','resp-4xx','resp-5xx','resp-other','resp-latency'])),
         no_ssl=dict(type='bool',),
         follow_port_protocol=dict(type='str',choices=['tcp','udp']),
         template_server_ssl=dict(type='str',),
         alternate_port=dict(type='list',alternate_name=dict(type='str',),alternate=dict(type='int',),alternate_server_port=dict(type='int',)),
         port_number=dict(type='int',required=True,),
         extended_stats=dict(type='bool',),
-        rport_health_check_shared=dict(type='str',),
         conn_resume=dict(type='int',),
         user_tag=dict(type='str',),
         range=dict(type='int',),
@@ -360,9 +498,21 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
 
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -386,7 +536,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -400,7 +549,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -412,7 +560,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -427,7 +574,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("port", module)
     if module.check_mode:

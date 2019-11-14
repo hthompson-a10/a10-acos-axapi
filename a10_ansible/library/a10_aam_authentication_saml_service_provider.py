@@ -48,6 +48,50 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            login_auth_req:
+                description:
+                - "Login Authentication Request"
+            slo_error:
+                description:
+                - "Single Logout Error"
+            name:
+                description:
+                - "Specify SAML authentication service provider name"
+            sp_metadata_export_success:
+                description:
+                - "Metadata Export Success"
+            acs_authz_fail:
+                description:
+                - "SAML Single-Sign-On Authorization Fail"
+            slo_req:
+                description:
+                - "Single Logout Request"
+            login_auth_resp:
+                description:
+                - "Login Authentication Response"
+            slo_success:
+                description:
+                - "Single Logout Success"
+            acs_success:
+                description:
+                - "SAML Single-Sign-On Success"
+            acs_error:
+                description:
+                - "SAML Single-Sign-On Error"
+            other_error:
+                description:
+                - "Other Error"
+            acs_req:
+                description:
+                - "SAML Single-Sign-On Request"
+            sp_metadata_export_req:
+                description:
+                - "Metadata Export Request"
     name:
         description:
         - "Specify SAML authentication service provider name"
@@ -89,10 +133,6 @@ options:
     user_tag:
         description:
         - "Customized tag"
-        required: False
-    signature_algorithm:
-        description:
-        - "'SHA1'= use SHA1 as signature algorithm (default); 'SHA256'= use SHA256 as signature algorithm; "
         required: False
     assertion_consuming_service:
         description:
@@ -184,7 +224,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["acs_uri_bypass","adfs_ws_federation","artifact_resolution_service","assertion_consuming_service","certificate","entity_id","metadata_export_service","name","require_assertion_signed","saml_request_signed","sampling_enable","service_url","signature_algorithm","single_logout_service","soap_tls_certificate_validate","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["acs_uri_bypass","adfs_ws_federation","artifact_resolution_service","assertion_consuming_service","certificate","entity_id","metadata_export_service","name","require_assertion_signed","saml_request_signed","sampling_enable","service_url","single_logout_service","soap_tls_certificate_validate","stats","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -213,6 +253,7 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        stats=dict(type='dict',login_auth_req=dict(type='str',),slo_error=dict(type='str',),name=dict(type='str',required=True,),sp_metadata_export_success=dict(type='str',),acs_authz_fail=dict(type='str',),slo_req=dict(type='str',),login_auth_resp=dict(type='str',),slo_success=dict(type='str',),acs_success=dict(type='str',),acs_error=dict(type='str',),other_error=dict(type='str',),acs_req=dict(type='str',),sp_metadata_export_req=dict(type='str',)),
         name=dict(type='str',required=True,),
         certificate=dict(type='str',),
         require_assertion_signed=dict(type='dict',require_assertion_signed_enable=dict(type='bool',)),
@@ -220,7 +261,6 @@ def get_argspec():
         service_url=dict(type='str',),
         entity_id=dict(type='str',),
         user_tag=dict(type='str',),
-        signature_algorithm=dict(type='str',choices=['SHA1','SHA256']),
         assertion_consuming_service=dict(type='list',assertion_index=dict(type='int',),assertion_binding=dict(type='str',choices=['artifact','paos','post']),assertion_location=dict(type='str',)),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','sp-metadata-export-req','sp-metadata-export-success','login-auth-req','login-auth-resp','acs-req','acs-success','acs-authz-fail','acs-error','slo-req','slo-success','slo-error','other-error'])),
         saml_request_signed=dict(type='dict',saml_request_signed_disable=dict(type='bool',)),
@@ -254,11 +294,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -344,10 +379,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -371,7 +409,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -385,7 +422,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -397,7 +433,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -412,7 +447,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("service-provider", module)
     if module.check_mode:
@@ -495,8 +529,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

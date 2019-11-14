@@ -48,6 +48,47 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            conn_rate_unit:
+                description:
+                - "Field conn_rate_unit"
+            port_list:
+                description:
+                - "Field port_list"
+            name:
+                description:
+                - "CGNV6 Virtual Server Name"
+            icmpv6_rate_over_limit_drop:
+                description:
+                - "Field icmpv6_rate_over_limit_drop"
+            curr_conn_rate:
+                description:
+                - "Field curr_conn_rate"
+            mac:
+                description:
+                - "Field mac"
+            curr_icmp_rate:
+                description:
+                - "Field curr_icmp_rate"
+            icmpv6_lockup_time_left:
+                description:
+                - "Field icmpv6_lockup_time_left"
+            state:
+                description:
+                - "Field state"
+            curr_icmpv6_rate:
+                description:
+                - "Field curr_icmpv6_rate"
+            icmp_rate_over_limit_drop:
+                description:
+                - "Field icmp_rate_over_limit_drop"
+            icmp_lockup_time_left:
+                description:
+                - "Field icmp_lockup_time_left"
     use_if_ip:
         description:
         - "Use Interface IP"
@@ -78,9 +119,9 @@ options:
             port_number:
                 description:
                 - "Port"
-            acl_name_list:
+            action:
                 description:
-                - "Field acl_name_list"
+                - "'enable'= Enable; 'disable'= Disable; "
             sampling_enable:
                 description:
                 - "Field sampling_enable"
@@ -90,12 +131,6 @@ options:
             template_dns:
                 description:
                 - "DNS template (DNS template name)"
-            acl_id_list:
-                description:
-                - "Field acl_id_list"
-            action:
-                description:
-                - "'enable'= Enable; 'disable'= Disable; "
             pool:
                 description:
                 - "Specify NAT pool or pool group"
@@ -157,7 +192,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["enable_disable_action","ethernet","ip_address","ipv6_address","name","netmask","policy","port_list","template_policy","use_if_ip","user_tag","uuid","vrid",]
+AVAILABLE_PROPERTIES = ["enable_disable_action","ethernet","ip_address","ipv6_address","name","netmask","oper","policy","port_list","template_policy","use_if_ip","user_tag","uuid","vrid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -186,8 +221,9 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',conn_rate_unit=dict(type='str',choices=['100ms','second']),port_list=dict(type='list',oper=dict(type='dict',loc_list=dict(type='str',),loc_max_depth=dict(type='int',),level_str=dict(type='str',),loc_last=dict(type='str',),state=dict(type='str',choices=['All Up','Functional Up','Down','Disb','Unkn']),geo_location=dict(type='str',),loc_success=dict(type='int',),loc_error=dict(type='int',),group_id=dict(type='int',),loc_override=dict(type='int',)),protocol=dict(type='str',required=True,choices=['dns-udp']),port_number=dict(type='int',required=True,)),name=dict(type='str',required=True,),icmpv6_rate_over_limit_drop=dict(type='int',),curr_conn_rate=dict(type='int',),mac=dict(type='str',),curr_icmp_rate=dict(type='int',),icmpv6_lockup_time_left=dict(type='int',),state=dict(type='str',choices=['All Up','Functional Up','Partial Up','Down','Disb','Unkn']),curr_icmpv6_rate=dict(type='int',),icmp_rate_over_limit_drop=dict(type='int',),icmp_lockup_time_left=dict(type='int',)),
         use_if_ip=dict(type='bool',),
-        port_list=dict(type='list',protocol=dict(type='str',required=True,choices=['dns-udp']),uuid=dict(type='str',),precedence=dict(type='bool',),auto=dict(type='bool',),template_policy=dict(type='str',),service_group=dict(type='str',),port_number=dict(type='int',required=True,),acl_name_list=dict(type='list',acl_name=dict(type='str',),acl_name_src_nat_pool=dict(type='str',),acl_name_seq_num=dict(type='int',)),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','curr_conn','total_l4_conn','total_l7_conn','toatal_tcp_conn','total_conn','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_dns_pkts','total_mf_dns_pkts','es_total_failure_actions','compression_bytes_before','compression_bytes_after','compression_hit','compression_miss','compression_miss_no_client','compression_miss_template_exclusion','curr_req','total_req','total_req_succ','peak_conn','curr_conn_rate','last_rsp_time','fastest_rsp_time','slowest_rsp_time'])),user_tag=dict(type='str',),template_dns=dict(type='str',),acl_id_list=dict(type='list',acl_id_seq_num=dict(type='int',),acl_id=dict(type='int',),acl_id_src_nat_pool=dict(type='str',)),action=dict(type='str',choices=['enable','disable']),pool=dict(type='str',)),
+        port_list=dict(type='list',protocol=dict(type='str',required=True,choices=['dns-udp']),uuid=dict(type='str',),precedence=dict(type='bool',),auto=dict(type='bool',),template_policy=dict(type='str',),service_group=dict(type='str',),port_number=dict(type='int',required=True,),action=dict(type='str',choices=['enable','disable']),sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','curr_conn','total_l4_conn','total_l7_conn','toatal_tcp_conn','total_conn','total_fwd_bytes','total_fwd_pkts','total_rev_bytes','total_rev_pkts','total_dns_pkts','total_mf_dns_pkts','es_total_failure_actions','compression_bytes_before','compression_bytes_after','compression_hit','compression_miss','compression_miss_no_client','compression_miss_template_exclusion','curr_req','total_req','total_req_succ','peak_conn','curr_conn_rate','last_rsp_time','fastest_rsp_time','slowest_rsp_time'])),user_tag=dict(type='str',),template_dns=dict(type='str',),pool=dict(type='str',)),
         name=dict(type='str',required=True,),
         template_policy=dict(type='str',),
         vrid=dict(type='int',),
@@ -228,11 +264,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -314,10 +345,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -340,7 +374,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -354,7 +387,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -366,7 +398,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -381,7 +412,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("dns64-virtualserver", module)
     if module.check_mode:
@@ -466,8 +496,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

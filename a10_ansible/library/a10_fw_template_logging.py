@@ -68,14 +68,10 @@ options:
             l4_session_info:
                 description:
                 - "Log the L4 session information of the HTTP request"
-    merged_style:
+    severity:
         description:
-        - "Merge creation and deletion of session logs to one"
+        - "'emergency'= 0= Emergency; 'alert'= 1= Alert; 'critical'= 2= Critical; 'error'= 3= Error; 'warning'= 4= Warning; 'notice'= 5= Notice; 'informational'= 6= Informational; 'debug'= 7= Debug; "
         required: False
-    name:
-        description:
-        - "Logging Template Name"
-        required: True
     source_address:
         description:
         - "Field source_address"
@@ -102,14 +98,6 @@ options:
             http_requests:
                 description:
                 - "'host'= Log the HTTP Host Header; 'url'= Log the HTTP Request URL; "
-    severity:
-        description:
-        - "'emergency'= 0= Emergency; 'alert'= 1= Alert; 'critical'= 2= Critical; 'error'= 3= Error; 'warning'= 4= Warning; 'notice'= 5= Notice; 'informational'= 6= Informational; 'debug'= 7= Debug; "
-        required: False
-    include_dest_fqdn:
-        description:
-        - "Include destination FQDN string"
-        required: False
     facility:
         description:
         - "'kernel'= 0= Kernel; 'user'= 1= User-level; 'mail'= 2= Mail; 'daemon'= 3= System daemons; 'security-authorization'= 4= Security/authorization; 'syslog'= 5= Syslog internal; 'line-printer'= 6= Line printer; 'news'= 7= Network news; 'uucp'= 8= UUCP subsystem; 'cron'= 9= Time-related; 'security-authorization-private'= 10= Private security/authorization; 'ftp'= 11= FTP; 'ntp'= 12= NTP; 'audit'= 13= Audit; 'alert'= 14= Alert; 'clock'= 15= Clock-related; 'local0'= 16= Local use 0; 'local1'= 17= Local use 1; 'local2'= 18= Local use 2; 'local3'= 19= Local use 3; 'local4'= 20= Local use 4; 'local5'= 21= Local use 5; 'local6'= 22= Local use 6; 'local7'= 23= Local use 7; "
@@ -137,6 +125,10 @@ options:
             attr_cfg:
                 description:
                 - "Field attr_cfg"
+    uuid:
+        description:
+        - "uuid of the object"
+        required: False
     rule:
         description:
         - "Field rule"
@@ -157,10 +149,10 @@ options:
         description:
         - "'seconds'= Logging timestamp resolution in seconds (default); '10-milliseconds'= Logging timestamp resolution in 10s of milli-seconds; "
         required: False
-    uuid:
+    name:
         description:
-        - "uuid of the object"
-        required: False
+        - "Logging Template Name"
+        required: True
 
 
 """
@@ -175,7 +167,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["facility","format","include_dest_fqdn","include_http","include_radius_attribute","log","merged_style","name","resolution","rule","service_group","severity","source_address","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["facility","format","include_http","include_radius_attribute","log","name","resolution","rule","service_group","severity","source_address","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -205,20 +197,18 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         include_http=dict(type='dict',header_cfg=dict(type='list',custom_max_length=dict(type='int',),http_header=dict(type='str',choices=['cookie','referer','user-agent','header1','header2','header3']),max_length=dict(type='int',),custom_header_name=dict(type='str',)),request_number=dict(type='bool',),file_extension=dict(type='bool',),method=dict(type='bool',),l4_session_info=dict(type='bool',)),
-        merged_style=dict(type='bool',),
-        name=dict(type='str',required=True,),
+        severity=dict(type='str',choices=['emergency','alert','critical','error','warning','notice','informational','debug']),
         source_address=dict(type='dict',ip=dict(type='str',),uuid=dict(type='str',),ipv6=dict(type='str',)),
         format=dict(type='str',choices=['ascii','cef']),
         log=dict(type='dict',http_requests=dict(type='str',choices=['host','url'])),
-        severity=dict(type='str',choices=['emergency','alert','critical','error','warning','notice','informational','debug']),
-        include_dest_fqdn=dict(type='bool',),
         facility=dict(type='str',choices=['kernel','user','mail','daemon','security-authorization','syslog','line-printer','news','uucp','cron','security-authorization-private','ftp','ntp','audit','alert','clock','local0','local1','local2','local3','local4','local5','local6','local7']),
         include_radius_attribute=dict(type='dict',framed_ipv6_prefix=dict(type='bool',),prefix_length=dict(type='str',choices=['32','48','64','80','96','112']),insert_if_not_existing=dict(type='bool',),zero_in_custom_attr=dict(type='bool',),no_quote=dict(type='bool',),attr_cfg=dict(type='list',attr_event=dict(type='str',choices=['http-requests','sessions']),attr=dict(type='str',choices=['imei','imsi','msisdn','custom1','custom2','custom3']))),
+        uuid=dict(type='str',),
         rule=dict(type='dict',rule_http_requests=dict(type='dict',log_every_http_request=dict(type='bool',),disable_sequence_check=dict(type='bool',),include_all_headers=dict(type='bool',),dest_port=dict(type='list',include_byte_count=dict(type='bool',),dest_port_number=dict(type='int',)),max_url_len=dict(type='int',))),
         service_group=dict(type='str',),
         user_tag=dict(type='str',),
         resolution=dict(type='str',choices=['seconds','10-milliseconds']),
-        uuid=dict(type='str',)
+        name=dict(type='str',required=True,)
     ))
    
 
@@ -243,16 +233,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -333,12 +313,6 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
-
 def exists(module):
     try:
         return get(module)
@@ -360,7 +334,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -374,7 +347,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -386,7 +358,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -401,7 +372,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("logging", module)
     if module.check_mode:
@@ -484,10 +454,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

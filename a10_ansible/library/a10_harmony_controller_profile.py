@@ -48,6 +48,50 @@ options:
         description:
         - Destination/target partition for object/command
         required: False
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            heartbeat_status:
+                description:
+                - "Field heartbeat_status"
+            overall_status:
+                description:
+                - "Field overall_status"
+            heartbeat_error_message:
+                description:
+                - "Field heartbeat_error_message"
+            deregistration_error_message:
+                description:
+                - "Field deregistration_error_message"
+            service_registry:
+                description:
+                - "Field service_registry"
+            broker_info:
+                description:
+                - "Field broker_info"
+            kafka_broker_state:
+                description:
+                - "Field kafka_broker_state"
+            deregistration_status:
+                description:
+                - "Field deregistration_status"
+            registration_status:
+                description:
+                - "Field registration_status"
+            registration_status_code:
+                description:
+                - "Field registration_status_code"
+            service_registry_error_message:
+                description:
+                - "Field service_registry_error_message"
+            deregistration_status_code:
+                description:
+                - "Field deregistration_status_code"
+            registration_error_message:
+                description:
+                - "Field registration_error_message"
     user_name:
         description:
         - "user-name for the tenant"
@@ -60,21 +104,13 @@ options:
         description:
         - "Use management port for connections"
         required: False
-    auto_restart_action:
-        description:
-        - "'enable'= enable auto analytics bus restart, default behavior is enable; 'disable'= disable auto analytics bus restart; "
-        required: False
     region:
         description:
         - "region of the thunder-device"
         required: False
-    interval:
+    metrics_export_interval:
         description:
-        - "auto analytics bus restart time interval in mins, default is 3 mins"
-        required: False
-    host:
-        description:
-        - "Set harmony controller host adddress"
+        - "metrics export interval in seconds, default is 60 (metrics export interval in seconds, default is 60 seconds)"
         required: False
     port:
         description:
@@ -91,17 +127,10 @@ options:
             ip_address:
                 description:
                 - "IP address (IPv4 address)"
-    re_sync:
+    host:
         description:
-        - "Field re_sync"
+        - "Set harmony controller host adddress"
         required: False
-        suboptions:
-            analytics_bus:
-                description:
-                - "re-sync analtyics bus connections"
-            schema_registry:
-                description:
-                - "re-sync the schema registry"
     password_encrypted:
         description:
         - "Do NOT use this option manually. (This is an A10 reserved keyword.) (The ENCRYPTED secret string)"
@@ -136,7 +165,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["action","auto_restart_action","availability_zone","host","interval","password_encrypted","port","provider","re_sync","region","secret_value","thunder_mgmt_ip","use_mgmt_port","user_name","uuid",]
+AVAILABLE_PROPERTIES = ["action","availability_zone","host","metrics_export_interval","oper","password_encrypted","port","provider","region","secret_value","thunder_mgmt_ip","use_mgmt_port","user_name","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -165,16 +194,15 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',heartbeat_status=dict(type='str',),overall_status=dict(type='str',),heartbeat_error_message=dict(type='str',),deregistration_error_message=dict(type='str',),service_registry=dict(type='str',),broker_info=dict(type='str',),kafka_broker_state=dict(type='str',choices=['Up','Down']),deregistration_status=dict(type='str',),registration_status=dict(type='str',),registration_status_code=dict(type='int',),service_registry_error_message=dict(type='str',),deregistration_status_code=dict(type='int',),registration_error_message=dict(type='str',)),
         user_name=dict(type='str',),
         uuid=dict(type='str',),
         use_mgmt_port=dict(type='bool',),
-        auto_restart_action=dict(type='str',choices=['enable','disable']),
         region=dict(type='str',),
-        interval=dict(type='int',),
-        host=dict(type='str',),
+        metrics_export_interval=dict(type='int',),
         port=dict(type='int',),
         thunder_mgmt_ip=dict(type='dict',uuid=dict(type='str',),ip_address=dict(type='str',)),
-        re_sync=dict(type='dict',analytics_bus=dict(type='bool',),schema_registry=dict(type='bool',)),
+        host=dict(type='str',),
         password_encrypted=dict(type='str',),
         provider=dict(type='str',),
         action=dict(type='str',choices=['register','deregister']),
@@ -207,11 +235,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -293,10 +316,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -319,7 +345,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -333,7 +358,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -345,7 +369,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -360,7 +383,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("profile", module)
     if module.check_mode:
@@ -445,8 +467,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

@@ -52,6 +52,23 @@ options:
         description:
         - "Specify WS-Federation relay URI, default is /_trust/"
         required: False
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            failure:
+                description:
+                - "Failure"
+            request:
+                description:
+                - "Request"
+            name:
+                description:
+                - "Specify WS-Federation authentication relay name"
+            success:
+                description:
+                - "Success"
     name:
         description:
         - "Specify WS-Federation authentication relay name"
@@ -90,7 +107,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["application_server","authentication_uri","name","sampling_enable","user_tag","uuid",]
+AVAILABLE_PROPERTIES = ["application_server","authentication_uri","name","sampling_enable","stats","user_tag","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -120,6 +137,7 @@ def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
         authentication_uri=dict(type='str',),
+        stats=dict(type='dict',failure=dict(type='str',),request=dict(type='str',),name=dict(type='str',required=True,),success=dict(type='str',)),
         name=dict(type='str',required=True,),
         user_tag=dict(type='str',),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','request','success','failure'])),
@@ -149,11 +167,6 @@ def existing_url(module):
     f_dict["name"] = module.params["name"]
 
     return url_base.format(**f_dict)
-
-def oper_url(module):
-    """Return the URL for operational data of an existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/oper"
 
 def stats_url(module):
     """Return the URL for statistical data of and existing resource"""
@@ -239,10 +252,13 @@ def get(module):
 def get_list(module):
     return module.client.get(list_url(module))
 
-def get_oper(module):
-    return module.client.get(oper_url(module))
-
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -266,7 +282,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -280,7 +295,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -292,7 +306,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -307,7 +320,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("ws-federation", module)
     if module.check_mode:
@@ -390,8 +402,6 @@ def run_command(module):
             result["result"] = get(module)
         elif module.params.get("get_type") == "list":
             result["result"] = get_list(module)
-        elif module.params.get("get_type") == "oper":
-            result["result"] = get_oper(module)
         elif module.params.get("get_type") == "stats":
             result["result"] = get_stats(module)
     return result

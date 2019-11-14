@@ -51,6 +51,47 @@ options:
     site_name:
         description:
         - Key to identify parent object
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            dev_gw_state:
+                description:
+                - "Field dev_gw_state"
+            vip_server:
+                description:
+                - "Field vip_server"
+            dev_name:
+                description:
+                - "Field dev_name"
+            dev_ip_cnt:
+                description:
+                - "Field dev_ip_cnt"
+            dev_attr:
+                description:
+                - "Field dev_attr"
+            dev_ip:
+                description:
+                - "Field dev_ip"
+            device_name:
+                description:
+                - "Specify SLB device name"
+            dev_state:
+                description:
+                - "Field dev_state"
+            dev_session_num:
+                description:
+                - "Field dev_session_num"
+            dev_admin_preference:
+                description:
+                - "Field dev_admin_preference"
+            client_ldns_list:
+                description:
+                - "Field client_ldns_list"
+            dev_session_util:
+                description:
+                - "Field dev_session_util"
     health_check_action:
         description:
         - "'health-check'= Enable health Check; 'health-check-disable'= Disable health check; "
@@ -62,10 +103,6 @@ options:
     uuid:
         description:
         - "uuid of the object"
-        required: False
-    proto_aging_time:
-        description:
-        - "Specify GSLB Protocol aging time, default is 60"
         required: False
     device_name:
         description:
@@ -83,9 +120,9 @@ options:
         description:
         - "Enable DNS Auto Mapping"
         required: False
-    msg_format_acos_2x:
+    proto_aging_time:
         description:
-        - "Run GSLB Protocol in compatible mode with a ACOS 2.x GSLB peer"
+        - "Specify GSLB Protocol aging time, default is 60"
         required: False
     rdt_value:
         description:
@@ -143,7 +180,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["admin_preference","auto_detect","auto_map","client_ip","device_name","gateway_ip_addr","health_check_action","ip_address","max_client","msg_format_acos_2x","proto_aging_fast","proto_aging_time","proto_compatible","rdt_value","user_tag","uuid","vip_server",]
+AVAILABLE_PROPERTIES = ["admin_preference","auto_detect","auto_map","client_ip","device_name","gateway_ip_addr","health_check_action","ip_address","max_client","oper","proto_aging_fast","proto_aging_time","proto_compatible","rdt_value","user_tag","uuid","vip_server",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -172,15 +209,15 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',dev_gw_state=dict(type='str',),vip_server=dict(type='dict',oper=dict(type='dict',),vip_server_v4_list=dict(type='list',oper=dict(type='dict',dev_vip_addr=dict(type='str',),dev_vip_state=dict(type='str',),dev_vip_port_list=dict(type='list',dev_vip_port_num=dict(type='int',),dev_vip_port_state=dict(type='str',))),ipv4=dict(type='str',required=True,)),vip_server_v6_list=dict(type='list',oper=dict(type='dict',dev_vip_addr=dict(type='str',),dev_vip_state=dict(type='str',),dev_vip_port_list=dict(type='list',dev_vip_port_num=dict(type='int',),dev_vip_port_state=dict(type='str',))),ipv6=dict(type='str',required=True,)),vip_server_name_list=dict(type='list',oper=dict(type='dict',dev_vip_addr=dict(type='str',),dev_vip_state=dict(type='str',),dev_vip_port_list=dict(type='list',dev_vip_port_num=dict(type='int',),dev_vip_port_state=dict(type='str',))),vip_name=dict(type='str',required=True,))),dev_name=dict(type='str',),dev_ip_cnt=dict(type='int',),dev_attr=dict(type='str',),dev_ip=dict(type='str',),device_name=dict(type='str',required=True,),dev_state=dict(type='str',),dev_session_num=dict(type='int',),dev_admin_preference=dict(type='int',),client_ldns_list=dict(type='list',client_ip=dict(type='str',),age=dict(type='int',),rdt_sample1=dict(type='int',),rdt_sample2=dict(type='int',),rdt_sample3=dict(type='int',),rdt_sample4=dict(type='int',),rdt_sample5=dict(type='int',),rdt_sample6=dict(type='int',),rdt_sample7=dict(type='int',),rdt_sample8=dict(type='int',),ntype=dict(type='str',)),dev_session_util=dict(type='int',)),
         health_check_action=dict(type='str',choices=['health-check','health-check-disable']),
         client_ip=dict(type='str',),
         uuid=dict(type='str',),
-        proto_aging_time=dict(type='int',),
         device_name=dict(type='str',required=True,),
         proto_compatible=dict(type='bool',),
         user_tag=dict(type='str',),
         auto_map=dict(type='bool',),
-        msg_format_acos_2x=dict(type='bool',),
+        proto_aging_time=dict(type='int',),
         rdt_value=dict(type='int',),
         gateway_ip_addr=dict(type='str',),
         vip_server=dict(type='dict',vip_server_v4_list=dict(type='list',sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','dev_vip_hits'])),ipv4=dict(type='str',required=True,),uuid=dict(type='str',)),vip_server_v6_list=dict(type='list',sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','dev_vip_hits'])),uuid=dict(type='str',),ipv6=dict(type='str',required=True,)),vip_server_name_list=dict(type='list',sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','dev_vip_hits'])),vip_name=dict(type='str',required=True,),uuid=dict(type='str',))),
@@ -224,11 +261,6 @@ def oper_url(module):
     """Return the URL for operational data of an existing resource"""
     partial_url = existing_url(module)
     return partial_url + "/oper"
-
-def stats_url(module):
-    """Return the URL for statistical data of and existing resource"""
-    partial_url = existing_url(module)
-    return partial_url + "/stats"
 
 def list_url(module):
     """Return the URL for a list of resources"""
@@ -310,10 +342,13 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
-
-def get_stats(module):
-    return module.client.get(stats_url(module))
 
 def exists(module):
     try:
@@ -336,7 +371,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -350,7 +384,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -362,7 +395,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -377,7 +409,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("slb-dev", module)
     if module.check_mode:
@@ -462,8 +493,6 @@ def run_command(module):
             result["result"] = get_list(module)
         elif module.params.get("get_type") == "oper":
             result["result"] = get_oper(module)
-        elif module.params.get("get_type") == "stats":
-            result["result"] = get_stats(module)
     return result
 
 def main():

@@ -51,6 +51,26 @@ options:
     site_name:
         description:
         - Key to identify parent object
+    oper:
+        description:
+        - "Field oper"
+        required: False
+        suboptions:
+            ip_server_name:
+                description:
+                - "Specify the real server name"
+            state:
+                description:
+                - "Field state"
+            ip_server:
+                description:
+                - "Field ip_server"
+            ip_server_port:
+                description:
+                - "Field ip_server_port"
+            ip_address:
+                description:
+                - "Field ip_address"
     ip_server_name:
         description:
         - "Specify the real server name"
@@ -63,6 +83,17 @@ options:
             counters1:
                 description:
                 - "'all'= all; 'hits'= Number of times the IP was selected; "
+    stats:
+        description:
+        - "Field stats"
+        required: False
+        suboptions:
+            ip_server_name:
+                description:
+                - "Specify the real server name"
+            hits:
+                description:
+                - "Number of times the IP was selected"
     uuid:
         description:
         - "uuid of the object"
@@ -81,7 +112,7 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = ["ip_server_name","sampling_enable","uuid",]
+AVAILABLE_PROPERTIES = ["ip_server_name","oper","sampling_enable","stats","uuid",]
 
 # our imports go at the top so we fail fast.
 try:
@@ -110,8 +141,10 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update(dict(
+        oper=dict(type='dict',ip_server_name=dict(type='str',required=True,),state=dict(type='str',),ip_server=dict(type='str',),ip_server_port=dict(type='list',vport=dict(type='int',),vport_state=dict(type='str',)),ip_address=dict(type='str',)),
         ip_server_name=dict(type='str',required=True,),
         sampling_enable=dict(type='list',counters1=dict(type='str',choices=['all','hits'])),
+        stats=dict(type='dict',ip_server_name=dict(type='str',required=True,),hits=dict(type='str',)),
         uuid=dict(type='str',)
     ))
    
@@ -234,9 +267,21 @@ def get_list(module):
     return module.client.get(list_url(module))
 
 def get_oper(module):
+    if module.params.get("oper"):
+        query_params = {}
+        for k,v in module.params["oper"].items():
+            query_params[k.replace('_', '-')] = v 
+        return module.client.get(oper_url(module),
+                                 params=query_params)
     return module.client.get(oper_url(module))
 
 def get_stats(module):
+    if module.params.get("stats"):
+        query_params = {}
+        for k,v in module.params["stats"].items():
+            query_params[k.replace('_', '-')] = v
+        return module.client.get(stats_url(module),
+                                 params=query_params)
     return module.client.get(stats_url(module))
 
 def exists(module):
@@ -260,7 +305,6 @@ def report_changes(module, result, existing_config, payload):
     else:
         result.update(**payload)
     return result
-
 def create(module, result, payload):
     try:
         post_result = module.client.post(new_url(module), payload)
@@ -274,7 +318,6 @@ def create(module, result, payload):
     except Exception as gex:
         raise gex
     return result
-
 def delete(module, result):
     try:
         module.client.delete(existing_url(module))
@@ -286,7 +329,6 @@ def delete(module, result):
     except Exception as gex:
         raise gex
     return result
-
 def update(module, result, existing_config, payload):
     try:
         post_result = module.client.post(existing_url(module), payload)
@@ -301,7 +343,6 @@ def update(module, result, existing_config, payload):
     except Exception as gex:
         raise gex
     return result
-
 def present(module, result, existing_config):
     payload = build_json("ip-server", module)
     if module.check_mode:
