@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-# Copyright 2018 A10 Networks
+# Copyright 2021 A10 Networks
 # GNU General Public License v3.0+
 # (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -13,44 +13,60 @@ DOCUMENTATION = r'''
 module: a10_vcs_vblades_stat
 description:
     - Show aVCS vBlade box statistics information
-short_description: Configures A10 vcs-vblades.stat
-author: A10 Networks 2018
-version_added: 2.4
+author: A10 Networks 2021
 options:
     state:
         description:
         - State of the object to be created.
         choices:
           - noop
+        type: str
         required: True
     ansible_host:
         description:
         - Host for AXAPI authentication
+        type: str
         required: True
     ansible_username:
         description:
         - Username for AXAPI authentication
+        type: str
         required: True
     ansible_password:
         description:
         - Password for AXAPI authentication
+        type: str
         required: True
     ansible_port:
         description:
         - Port for AXAPI authentication
+        type: int
         required: True
     a10_device_context_id:
         description:
         - Device ID for aVCS configuration
         choices: [1-8]
+        type: int
         required: False
     a10_partition:
         description:
         - Destination/target partition for object/command
+        type: str
+        required: False
+    vblade_id:
+        description:
+        - "vBlade-id"
+        type: int
+        required: True
+    uuid:
+        description:
+        - "uuid of the object"
+        type: str
         required: False
     sampling_enable:
         description:
         - "Field sampling_enable"
+        type: list
         required: False
         suboptions:
             counters1:
@@ -70,64 +86,73 @@ options:
           of aVCS election; 'slave_cfg_upd_notif_err'= vBlade Configuration Update Notif
           Errors counter of aVCS election; 'slave_cfg_upd_result_err'= vBlade
           Configuration Update Result Errors counter of aVCS election;"
-    vblade_id:
-        description:
-        - "vBlade-id"
-        required: True
+                type: str
     stats:
         description:
         - "Field stats"
+        type: dict
         required: False
         suboptions:
-            slave_recv_bytes:
-                description:
-                - "vBlade Received Bytes counter of aVCS election"
-            slave_cfg_upd_r_fail:
-                description:
-                - "vBlade Remote Configuration Update Errors counter of aVCS election"
-            slave_cfg_upd_result_err:
-                description:
-                - "vBlade Configuration Update Result Errors counter of aVCS election"
-            slave_cfg_upd:
-                description:
-                - "vBlade Received Configuration Updates counter of aVCS election"
-            slave_msg_inval:
-                description:
-                - "vBlade Invalid Messages counter of aVCS election"
-            slave_n_recv:
-                description:
-                - "vBlade Received Messages counter of aVCS election"
-            slave_cfg_upd_notif_err:
-                description:
-                - "vBlade Configuration Update Notif Errors counter of aVCS election"
-            slave_keepalive:
-                description:
-                - "vBlade Received Keepalives counter of aVCS election"
             slave_recv_err:
                 description:
                 - "vBlade Receive Errors counter of aVCS election"
-            slave_n_sent:
-                description:
-                - "vBlade Sent Messages counter of aVCS election"
-            vblade_id:
-                description:
-                - "vBlade-id"
+                type: str
             slave_send_err:
                 description:
                 - "vBlade Send Errors counter of aVCS election"
-            slave_cfg_upd_l1_fail:
+                type: str
+            slave_recv_bytes:
                 description:
-                - "vBlade Local Configuration Update Errors (1) counter of aVCS election"
-            slave_cfg_upd_l2_fail:
-                description:
-                - "vBlade Local Configuration Update Errors (2) counter of aVCS election"
+                - "vBlade Received Bytes counter of aVCS election"
+                type: str
             slave_sent_bytes:
                 description:
                 - "vBlade Sent Bytes counter of aVCS election"
-    uuid:
-        description:
-        - "uuid of the object"
-        required: False
+                type: str
+            slave_n_recv:
+                description:
+                - "vBlade Received Messages counter of aVCS election"
+                type: str
+            slave_n_sent:
+                description:
+                - "vBlade Sent Messages counter of aVCS election"
+                type: str
+            slave_msg_inval:
+                description:
+                - "vBlade Invalid Messages counter of aVCS election"
+                type: str
+            slave_keepalive:
+                description:
+                - "vBlade Received Keepalives counter of aVCS election"
+                type: str
+            slave_cfg_upd:
+                description:
+                - "vBlade Received Configuration Updates counter of aVCS election"
+                type: str
+            slave_cfg_upd_l1_fail:
+                description:
+                - "vBlade Local Configuration Update Errors (1) counter of aVCS election"
+                type: str
+            slave_cfg_upd_r_fail:
+                description:
+                - "vBlade Remote Configuration Update Errors counter of aVCS election"
+                type: str
+            slave_cfg_upd_l2_fail:
+                description:
+                - "vBlade Local Configuration Update Errors (2) counter of aVCS election"
+                type: str
+            slave_cfg_upd_notif_err:
+                description:
+                - "vBlade Configuration Update Notif Errors counter of aVCS election"
+                type: str
+            slave_cfg_upd_result_err:
+                description:
+                - "vBlade Configuration Update Result Errors counter of aVCS election"
+                type: str
+            vblade_id:
+                description:
+                - "vBlade-id"
+                type: int
 
 '''
 
@@ -181,6 +206,13 @@ def get_default_argspec():
 def get_argspec():
     rv = get_default_argspec()
     rv.update({
+        'vblade_id': {
+            'type': 'int',
+            'required': True,
+        },
+        'uuid': {
+            'type': 'str',
+        },
         'sampling_enable': {
             'type': 'list',
             'counters1': {
@@ -196,61 +228,54 @@ def get_argspec():
                 ]
             }
         },
-        'vblade_id': {
-            'type': 'int',
-            'required': True,
-        },
         'stats': {
             'type': 'dict',
+            'slave_recv_err': {
+                'type': 'str',
+            },
+            'slave_send_err': {
+                'type': 'str',
+            },
             'slave_recv_bytes': {
                 'type': 'str',
             },
-            'slave_cfg_upd_r_fail': {
-                'type': 'str',
-            },
-            'slave_cfg_upd_result_err': {
-                'type': 'str',
-            },
-            'slave_cfg_upd': {
-                'type': 'str',
-            },
-            'slave_msg_inval': {
+            'slave_sent_bytes': {
                 'type': 'str',
             },
             'slave_n_recv': {
                 'type': 'str',
             },
-            'slave_cfg_upd_notif_err': {
+            'slave_n_sent': {
+                'type': 'str',
+            },
+            'slave_msg_inval': {
                 'type': 'str',
             },
             'slave_keepalive': {
                 'type': 'str',
             },
-            'slave_recv_err': {
-                'type': 'str',
-            },
-            'slave_n_sent': {
-                'type': 'str',
-            },
-            'vblade_id': {
-                'type': 'int',
-                'required': True,
-            },
-            'slave_send_err': {
+            'slave_cfg_upd': {
                 'type': 'str',
             },
             'slave_cfg_upd_l1_fail': {
                 'type': 'str',
             },
+            'slave_cfg_upd_r_fail': {
+                'type': 'str',
+            },
             'slave_cfg_upd_l2_fail': {
                 'type': 'str',
             },
-            'slave_sent_bytes': {
+            'slave_cfg_upd_notif_err': {
                 'type': 'str',
+            },
+            'slave_cfg_upd_result_err': {
+                'type': 'str',
+            },
+            'vblade_id': {
+                'type': 'int',
+                'required': True,
             }
-        },
-        'uuid': {
-            'type': 'str',
         }
     })
     return rv
@@ -336,6 +361,18 @@ def run_command(module):
         protocol = "http"
     elif ansible_port == 443:
         protocol = "https"
+
+    valid = True
+
+    if state == 'present':
+        valid, validation_errors = validate(module.params)
+        for ve in validation_errors:
+            run_errors.append(ve)
+
+    if not valid:
+        err_msg = "\n".join(run_errors)
+        result["messages"] = "Validation failure: " + str(run_errors)
+        module.fail_json(msg=err_msg, **result)
 
     module.client = client_factory(ansible_host, ansible_port, protocol,
                                    ansible_username, ansible_password)

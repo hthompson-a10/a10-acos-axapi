@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-# Copyright 2018 A10 Networks
+# Copyright 2021 A10 Networks
 # GNU General Public License v3.0+
 # (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -10,12 +10,10 @@ REQUIRED_MUTEX = (False, "Only one of ({}) can be set.")
 REQUIRED_VALID = (True, "")
 
 DOCUMENTATION = r'''
-module: a10_Generates aVCS debug file
+module: a10_scaleout_apps_skip_mac_overwrite
 description:
-    - Field Generates aVCS debug file
-short_description: Configures A10 Generates aVCS debug file
-author: A10 Networks 2018
-version_added: 2.4
+    - Skips overwriting dest MAC of flooded packets on Active node
+author: A10 Networks 2021
 options:
     state:
         description:
@@ -24,31 +22,48 @@ options:
           - noop
           - present
           - absent
+        type: str
         required: True
     ansible_host:
         description:
         - Host for AXAPI authentication
+        type: str
         required: True
     ansible_username:
         description:
         - Username for AXAPI authentication
+        type: str
         required: True
     ansible_password:
         description:
         - Password for AXAPI authentication
+        type: str
         required: True
     ansible_port:
         description:
         - Port for AXAPI authentication
+        type: int
         required: True
     a10_device_context_id:
         description:
         - Device ID for aVCS configuration
         choices: [1-8]
+        type: int
         required: False
     a10_partition:
         description:
         - Destination/target partition for object/command
+        type: str
+        required: False
+    enable:
+        description:
+        - "Skips overwriting dest MAC of flooded packets on Active node"
+        type: bool
+        required: False
+    uuid:
+        description:
+        - "uuid of the object"
+        type: str
         required: False
 
 '''
@@ -63,7 +78,10 @@ ANSIBLE_METADATA = {
 }
 
 # Hacky way of having access to object properties for evaluation
-AVAILABLE_PROPERTIES = []
+AVAILABLE_PROPERTIES = [
+    "enable",
+    "uuid",
+]
 
 from ansible_collections.a10.acos_axapi.plugins.module_utils import \
     errors as a10_ex
@@ -99,14 +117,21 @@ def get_default_argspec():
 
 def get_argspec():
     rv = get_default_argspec()
-    rv.update({})
+    rv.update({
+        'enable': {
+            'type': 'bool',
+        },
+        'uuid': {
+            'type': 'str',
+        }
+    })
     return rv
 
 
 def existing_url(module):
     """Return the URL for an existing resource"""
     # Build the format dictionary
-    url_base = "/axapi/v3/techsupport/vcsdebug"
+    url_base = "/axapi/v3/scaleout/apps/skip-mac-overwrite"
 
     f_dict = {}
 
@@ -162,7 +187,7 @@ def build_envelope(title, data):
 def new_url(module):
     """Return the URL for creating a resource"""
     # To create the URL, we need to take the format string and return it with no params
-    url_base = "/axapi/v3/techsupport/vcsdebug"
+    url_base = "/axapi/v3/scaleout/apps/skip-mac-overwrite"
 
     f_dict = {}
 
@@ -219,7 +244,7 @@ def build_json(title, module):
 
 def report_changes(module, result, existing_config, payload):
     if existing_config:
-        for k, v in payload["Generates aVCS debug file"].items():
+        for k, v in payload["skip-mac-overwrite"].items():
             if isinstance(v, str):
                 if v.lower() == "true":
                     v = 1
@@ -229,10 +254,10 @@ def report_changes(module, result, existing_config, payload):
             elif k not in payload:
                 break
             else:
-                if existing_config["Generates aVCS debug file"][k] != v:
+                if existing_config["skip-mac-overwrite"][k] != v:
                     if result["changed"] is not True:
                         result["changed"] = True
-                    existing_config["Generates aVCS debug file"][k] = v
+                    existing_config["skip-mac-overwrite"][k] = v
             result.update(**existing_config)
     else:
         result.update(**payload)
@@ -269,7 +294,7 @@ def update(module, result, existing_config, payload):
 
 
 def present(module, result, existing_config):
-    payload = build_json("Generates aVCS debug file", module)
+    payload = build_json("skip-mac-overwrite", module)
     changed_config = report_changes(module, result, existing_config, payload)
     if module.check_mode:
         return changed_config
